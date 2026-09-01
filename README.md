@@ -63,13 +63,13 @@ Once Yahoo has bound the app:
 
 1. Write `$CI_STATE_DIR/tokens/yahoo-app.json` with `client_id` and
    `client_secret`. Never put that file in the repo or the image.
-2. `python -m yahoo authorize` — opens the `oob` URL, paste the code,
+2. `python -m yahoo authorize` — prints the `oob` URL, paste the code,
    token is written to `$CI_STATE_DIR/tokens/yahoo.json`.
 3. `python -m yahoo smoke` — reads own team, league settings, and
    roster. Refresh after expiry is unattended.
 
-A 401 means the refresh token is dead and needs a browser. A 403
-means the access program, not a bad token.
+A 401 that survives one refresh means the refresh token is dead and
+needs a browser. A 403 means the access program, not a bad token.
 
 ## Make targets
 

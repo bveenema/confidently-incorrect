@@ -20,14 +20,24 @@ def find_values(obj: Any, key: str) -> list[Any]:
     return found
 
 
-def first_str(obj: Any, key: str) -> str:
+def unique_strs(obj: Any, key: str) -> list[str]:
+    found: list[str] = []
+    seen: set[str] = set()
     for value in find_values(obj, key):
         if value is None:
             continue
         text = str(value)
-        if text:
-            return text
-    raise YahooAPIError(f"Yahoo payload had no {key}")
+        if text and text not in seen:
+            seen.add(text)
+            found.append(text)
+    return found
+
+
+def first_str(obj: Any, key: str) -> str:
+    values = unique_strs(obj, key)
+    if not values:
+        raise YahooAPIError(f"Yahoo payload had no {key}")
+    return values[0]
 
 
 def league_key_from_team_key(team_key: str) -> str:
@@ -38,7 +48,12 @@ def league_key_from_team_key(team_key: str) -> str:
 
 
 def parse_own_team(payload: dict[str, Any]) -> dict[str, str]:
-    team_key = first_str(payload, "team_key")
+    keys = unique_strs(payload, "team_key")
+    if not keys:
+        raise YahooAPIError("Yahoo payload had no team_key")
+    if len(keys) > 1:
+        raise YahooAPIError(f"Yahoo account has {len(keys)} NFL teams; refuse to guess")
+    team_key = keys[0]
     return {
         "team_key": team_key,
         "league_key": league_key_from_team_key(team_key),

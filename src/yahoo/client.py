@@ -105,46 +105,77 @@ class YahooClient:
         if self._tokens is None:
             self._tokens = load_tokens(self._state_dir)
         if needs_refresh(self._tokens, clock=self._clock):
-            self._tokens = refresh_tokens(
-                self._app_credentials(),
-                self._tokens,
-                self._http,
-                clock=self._clock,
-            )
-            save_tokens(self._tokens, self._state_dir)
+            return self._refresh_access_token()
         return self._tokens.access_token
 
-    def _get(self, path: str) -> dict[str, Any]:
-        token = self._ensure_access_token()
-        url = f"{FANTASY_BASE}{path}"
-        response = self._http.get(
-            url,
+    def _refresh_access_token(self) -> str:
+        if self._tokens is None:
+            self._tokens = load_tokens(self._state_dir)
+        self._tokens = refresh_tokens(
+            self._app_credentials(),
+            self._tokens,
+            self._http,
+            clock=self._clock,
+        )
+        self._persist_tokens()
+        return self._tokens.access_token
+
+    def _persist_tokens(self) -> Path:
+        assert self._tokens is not None
+        try:
+            return save_tokens(self._tokens, self._state_dir)
+        except OSError as exc:
+            raise YahooAuthError(
+                "Yahoo may have rotated the refresh token but the token "
+                "file could not be written. Reauthorization requires a "
+                "browser and cannot happen unattended. "
+                f"Run: python -m yahoo authorize. persist error: {exc}"
+            ) from exc
+
+    def _fantasy_get(self, path: str, token: str) -> httpx.Response:
+        return self._http.get(
+            f"{FANTASY_BASE}{path}",
             params={"format": "json"},
             headers={"Authorization": f"Bearer {token}"},
         )
+
+    def _get(self, path: str) -> dict[str, Any]:
+        token = self._ensure_access_token()
+        response = self._fantasy_get(path, token)
         if response.status_code == 401:
-            raise YahooAuthError(
-                "Yahoo returned 401. Reauthorization requires a browser "
-                "and cannot happen unattended. Run: python -m yahoo authorize."
-            )
-        if response.status_code == 403 or _is_access_denied(response):
-            raise YahooAPIError(
-                "Yahoo Fantasy API rejected this app (403 or "
-                "additional_authorization_required). This is the access "
-                "program, not a bad token. Apply at "
-                "https://sports.yahoo.com/developer/access/ and do not "
-                "delete an existing App ID. "
-                f"status={response.status_code} body={response.text[:300]}"
-            )
-        if response.status_code != 200:
-            raise YahooAPIError(
-                f"Yahoo GET {path} failed: status={response.status_code} "
-                f"body={response.text[:300]}"
-            )
-        payload = response.json()
-        if not isinstance(payload, dict):
-            raise YahooAPIError(f"Yahoo GET {path} returned a non-object JSON body")
-        return payload
+            token = self._refresh_access_token()
+            response = self._fantasy_get(path, token)
+            if response.status_code == 401:
+                raise YahooAuthError(_REAUTH_REQUIRED)
+        return _parse_fantasy_response(path, response)
+
+
+_REAUTH_REQUIRED = (
+    "Yahoo returned 401 after a refresh attempt. Reauthorization "
+    "requires a browser and cannot happen unattended. "
+    "Run: python -m yahoo authorize."
+)
+
+
+def _parse_fantasy_response(path: str, response: httpx.Response) -> dict[str, Any]:
+    if response.status_code == 403 or _is_access_denied(response):
+        raise YahooAPIError(
+            "Yahoo Fantasy API rejected this app (403 or "
+            "additional_authorization_required). This is the access "
+            "program, not a bad token. Apply at "
+            "https://sports.yahoo.com/developer/access/ and do not "
+            "delete an existing App ID. "
+            f"status={response.status_code} body={response.text[:300]}"
+        )
+    if response.status_code != 200:
+        raise YahooAPIError(
+            f"Yahoo GET {path} failed: status={response.status_code} "
+            f"body={response.text[:300]}"
+        )
+    payload = response.json()
+    if not isinstance(payload, dict):
+        raise YahooAPIError(f"Yahoo GET {path} returned a non-object JSON body")
+    return payload
 
 
 def _is_access_denied(response: httpx.Response) -> bool:

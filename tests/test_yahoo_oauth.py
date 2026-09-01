@@ -11,7 +11,7 @@ from yahoo.__main__ import main
 from yahoo.oauth import AUTH_URL, TOKEN_URL, authorize_url, needs_refresh
 from yahoo.parse import league_key_from_team_key, parse_own_team
 from yahoo.paths import app_credentials_path, token_path
-from yahoo.tokens import TokenSet, load_tokens, save_tokens
+from yahoo.tokens import TokenSet, load_app_credentials, load_tokens, save_tokens
 
 OWN_TEAM = {
     "fantasy_content": {
@@ -147,8 +147,8 @@ def test_token_survives_reload(tmp_path: Path) -> None:
 
 
 def test_missing_app_credentials(tmp_path: Path) -> None:
-    with pytest.raises(YahooConfigError, match="missing file"):
-        YahooClient(tmp_path).own_team()
+    with pytest.raises(YahooConfigError, match="yahoo-app"):
+        load_app_credentials(tmp_path)
 
 
 def test_exchange_code_persists_token(tmp_path: Path) -> None:
@@ -211,11 +211,49 @@ def test_needs_refresh_uses_skew() -> None:
     assert needs_refresh(tokens, clock=lambda: 980.0, skew=60.0) is False
 
 
-def test_401_is_auth_error_never_swallowed(tmp_path: Path) -> None:
+def test_fantasy_401_refreshes_once_then_succeeds(tmp_path: Path) -> None:
+    _write_app(tmp_path)
+    _write_token(tmp_path)
+    fantasy_calls = 0
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        nonlocal fantasy_calls
+        if str(request.url) == TOKEN_URL:
+            return httpx.Response(
+                200,
+                json={
+                    "access_token": "access-refreshed",
+                    "refresh_token": "refresh-rotated",
+                    "expires_in": 3600,
+                },
+            )
+        fantasy_calls += 1
+        if request.headers["Authorization"] == "Bearer access-old":
+            return httpx.Response(401, text="unauthorized")
+        assert request.headers["Authorization"] == "Bearer access-refreshed"
+        return httpx.Response(200, json=OWN_TEAM)
+
+    with _client(tmp_path, handler) as client:
+        team = client.own_team()
+    assert team["team_key"] == "461.l.99999.t.1"
+    assert fantasy_calls == 2
+    assert load_tokens(tmp_path).access_token == "access-refreshed"
+
+
+def test_401_after_refresh_is_auth_error_never_swallowed(tmp_path: Path) -> None:
     _write_app(tmp_path)
     _write_token(tmp_path)
 
     def handler(request: httpx.Request) -> httpx.Response:
+        if str(request.url) == TOKEN_URL:
+            return httpx.Response(
+                200,
+                json={
+                    "access_token": "access-refreshed",
+                    "refresh_token": "refresh-rotated",
+                    "expires_in": 3600,
+                },
+            )
         return httpx.Response(401, text="unauthorized")
 
     with _client(tmp_path, handler) as client:
@@ -327,3 +365,39 @@ def test_league_key_is_derived_not_hardcoded() -> None:
     )
     assert parsed["league_key"] == "999.l.42"
     assert league_key_from_team_key("999.l.42.t.7") == "999.l.42"
+
+
+def test_multiple_nfl_teams_fail_closed() -> None:
+    payload = {
+        "teams": {
+            "0": {"team": [[{"team_key": "461.l.1.t.1"}]]},
+            "1": {"team": [[{"team_key": "461.l.2.t.3"}]]},
+        }
+    }
+    with pytest.raises(YahooAPIError, match="refuse to guess"):
+        parse_own_team(payload)
+
+
+def test_refresh_persist_failure_is_auth_error(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _write_app(tmp_path)
+    _write_token(tmp_path, expires_at=1.0)
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200,
+            json={
+                "access_token": "access-refreshed",
+                "refresh_token": "refresh-rotated",
+                "expires_in": 3600,
+            },
+        )
+
+    def boom(*_args, **_kwargs):
+        raise OSError("disk full")
+
+    monkeypatch.setattr("yahoo.client.save_tokens", boom)
+    with _client(tmp_path, handler) as client:
+        with pytest.raises(YahooAuthError, match="could not be written"):
+            client.own_team()

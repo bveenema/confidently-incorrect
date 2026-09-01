@@ -44,7 +44,11 @@ def _read_json(path: Path) -> dict[str, Any]:
 def _atomic_write(path: Path, payload: dict[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     tmp = path.with_name(path.name + ".tmp")
-    tmp.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+    data = json.dumps(payload, indent=2) + "\n"
+    with tmp.open("w", encoding="utf-8") as handle:
+        handle.write(data)
+        handle.flush()
+        os.fsync(handle.fileno())
     if os.name != "nt":
         os.chmod(tmp, 0o600)
     tmp.replace(path)
