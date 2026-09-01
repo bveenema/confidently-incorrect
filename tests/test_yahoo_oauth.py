@@ -294,6 +294,30 @@ def test_403_access_program_is_not_auth_error(tmp_path: Path) -> None:
             client.own_team()
 
 
+def test_401_access_problem_is_not_auth_error(tmp_path: Path) -> None:
+    _write_app(tmp_path)
+    _write_token(tmp_path)
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        if str(request.url) == TOKEN_URL:
+            return httpx.Response(
+                200,
+                json={
+                    "access_token": "access-refreshed",
+                    "refresh_token": "refresh-rotated",
+                    "expires_in": 3600,
+                },
+            )
+        return httpx.Response(
+            401,
+            text='OAuth oauth_problem="additional_authorization_required"',
+        )
+
+    with _client(tmp_path, handler) as client:
+        with pytest.raises(YahooAPIError, match="access program"):
+            client.own_team()
+
+
 def test_additional_authorization_required(tmp_path: Path) -> None:
     _write_app(tmp_path)
     _write_token(tmp_path)

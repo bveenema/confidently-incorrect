@@ -111,14 +111,19 @@ class YahooClient:
     def _refresh_access_token(self) -> str:
         if self._tokens is None:
             self._tokens = load_tokens(self._state_dir)
-        self._tokens = refresh_tokens(
+        refreshed = refresh_tokens(
             self._app_credentials(),
             self._tokens,
             self._http,
             clock=self._clock,
         )
-        self._persist_tokens()
-        return self._tokens.access_token
+        self._tokens = refreshed
+        try:
+            self._persist_tokens()
+        except YahooAuthError:
+            self._tokens = None
+            raise
+        return refreshed.access_token
 
     def _persist_tokens(self) -> Path:
         assert self._tokens is not None
@@ -143,10 +148,10 @@ class YahooClient:
         token = self._ensure_access_token()
         response = self._fantasy_get(path, token)
         if response.status_code == 401:
+            if _is_access_denied(response):
+                return _parse_fantasy_response(path, response)
             token = self._refresh_access_token()
             response = self._fantasy_get(path, token)
-            if response.status_code == 401:
-                raise YahooAuthError(_REAUTH_REQUIRED)
         return _parse_fantasy_response(path, response)
 
 
@@ -167,6 +172,8 @@ def _parse_fantasy_response(path: str, response: httpx.Response) -> dict[str, An
             "delete an existing App ID. "
             f"status={response.status_code} body={response.text[:300]}"
         )
+    if response.status_code == 401:
+        raise YahooAuthError(_REAUTH_REQUIRED)
     if response.status_code != 200:
         raise YahooAPIError(
             f"Yahoo GET {path} failed: status={response.status_code} "
