@@ -1,0 +1,34 @@
+# Local Podman stack. Runtime state is CI_STATE_DIR on the host,
+# mounted at /srv/ci (D-72). Mosquitto persistence is a sibling
+# directory so a git clean cannot reach it.
+#
+#   $env:CI_STATE_DIR = "$env:USERPROFILE\.local\share\ci"
+#   podman compose up --build
+
+services:
+  engine:
+    build:
+      context: .
+      dockerfile: Containerfile
+    image: ci:dev
+    volumes:
+      - ${CI_STATE_DIR}:/srv/ci
+    command:
+      - python
+      - -c
+      - |
+        from pathlib import Path
+        from yahoo import healthcheck
+        p = Path("/srv/ci/healthcheck.txt")
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_text(healthcheck() + "\n", encoding="utf-8")
+        print(p.read_text(encoding="utf-8"), end="")
+
+  mosquitto:
+    image: eclipse-mosquitto:2
+    volumes:
+      - ./infra/mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      - ${CI_STATE_DIR}/mosquitto:/mosquitto/data
+    ports:
+      - "127.0.0.1:1883:1883"
+      - "127.0.0.1:9001:9001"

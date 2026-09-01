@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="40 40 240 240" width="1024" height="1024">
+  <style>
+    :root { --brand: #FF7F2A; }
+    .bg { fill: #0B0B0B; }
+    .mark { stroke: #FF7F2A; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+    .node { fill: #FF7F2A; }
+  </style>
+  <rect class="bg" x="40" y="40" width="240" height="240" rx="42"/>
+  <path class="mark" stroke-width="7" d="M160 252 L93 219 L80 114 L160 68 L240 114 L240 206"/>
+  <path class="mark" stroke-width="5" d="M188 142 L160 68 M188 142 L80 114 M188 142 L240 206"/>
+  <path class="mark" stroke-width="5" d="M240 206 L178 198"/>
+  <circle class="node" cx="188" cy="142" r="15"/>
+  <circle class="node" cx="160" cy="68" r="12"/>
+  <circle class="node" cx="93" cy="219" r="12"/>
+  <circle class="node" cx="240" cy="114" r="10"/>
+  <circle class="node" cx="240" cy="206" r="11"/>
+  <circle class="node" cx="160" cy="252" r="10"/>
+  <circle class="node" cx="80" cy="114" r="11"/>
+</svg>

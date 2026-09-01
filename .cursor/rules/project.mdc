@@ -1,0 +1,27 @@
+---
+description: Binding project rules — read .ai/rules.md first
+alwaysApply: true
+---
+
+# Confidently Incorrect
+
+Binding rules are in `.ai/rules.md`. Read that file before any
+non-trivial change. If a request contradicts a recorded decision in
+`architecture.md`, stop and say so.
+
+Never:
+
+- Hardcode a league-derived value (`.ai/rules.md` §4)
+- Let model output reach the Yahoo API unvalidated
+- Add a deterministic quality floor to trade acceptance
+- Skip the `considered_options` snapshot
+- Let real names enter `kb.db`, `notes/`, logs, prompts, or MQTT
+- Include `notes/managers/` in a site build
+- Commit secrets
+- Swallow an exception on a write path
+- Ping the dead-man switch on process start
+- Touch `/srv/ci/` with a git command
+- Deploy by improvising SSH instead of `deploy.sh`
+
+Docs are the spec. Append to the decision log; never edit an old
+entry to match new behaviour. New unknowns go in `followups.md`.

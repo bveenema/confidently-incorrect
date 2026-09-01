@@ -1,0 +1,3 @@
+-- kb.db schema. Tables land in the week-1 issue
+-- "kb.db schema: ledger, attribution, deploys, config changes".
+-- Do not invent tables here. season_id is required from the first write (D-74).

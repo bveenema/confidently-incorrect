@@ -1,0 +1,34 @@
+# Python
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+dist/
+build/
+
+# Secrets and tokens — never commit
+.env
+.env.*
+*.token
+tokens/
+
+# Runtime state that belongs on the volume, not in git
+*.db
+*.db-wal
+*.db-shm
+srv/ci/
+notes/managers/
+
+# Dump archive zip (contents already extracted)
+files.zip
+
+# OS / editor
+.DS_Store
+Thumbs.db
+*.swp
+.idea/
+.vscode/
