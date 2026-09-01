@@ -23,7 +23,7 @@ Ten days. These gate the draft working at all.
 
 | # | Status | Item | Why it matters | How to check | Resolution |
 |---|---|---|---|---|---|
-| A-1 | ☐ | OAuth working end to end, token refresh unattended | Everything depends on it. Day-2 gate: if not working, cut live advisory | Read own team, league settings, a roster. Restart the process and confirm refresh | |
+| A-1 | ☐ | OAuth working end to end, token refresh unattended | Everything depends on it. Day-2 gate: if not working, cut live advisory | Read own team, league settings, a roster. Restart the process and confirm refresh | Client shipped (`python -m yahoo authorize` / `smoke`). Unit tests cover persist, refresh, and 401. **Live smoke still required** and is blocked on A-12. |
 | A-2 | ☐ | Does the FantasyPros tier purchased return **stat-level** projections, not just point totals? | League scoring is heavily custom. Point totals from any source are useless here | Inspect an actual API response before committing to the subscription | |
 | A-3 | ☐ | FantasyPros billing — monthly available, or annual only? | $45 vs ~$108 for the season | Check at signup | |
 | A-4 | ☐ | Is Yahoo's draft results endpoint available and fresh **during** a live draft? | The entire live advisory design assumes it. No documentation answers this | Join a Yahoo mock draft, run the polling loop. **Do by day 6** | |
@@ -34,6 +34,7 @@ Ten days. These gate the draft working at all.
 | A-9 | ☐ | Verify runtime state at `/srv/ci/` is outside the git working directory | A checkout, stash, or clean would destroy the season's attribution data. Sharpest footgun in the deploy story | Run `git clean -nxd` on the VPS and confirm nothing under `/srv/ci/` is listed | Local layout uses `CI_STATE_DIR` outside the worktree. **VPS check still open.** |
 | A-10 | ☐ | Verify `deploy.sh --rollback <sha>` works without network access | Rollback is the Sunday-morning escape hatch. Untested, it isn't one | Roll back and forward once on the VPS before week 1 | |
 | A-11 | ☑ | Stamp every `kb.db` record with a season identifier | The only part of O-11 that is expensive to retrofit | — | **Resolved in design.** `season_id` on `runs`, `deploys`, `config_changes`; child tables inherit via run id. `notes/` front matter carries it too. See architecture §7.1 |
+| A-12 | ☐ | Yahoo Fantasy API access program approval | Since ~2026-07-22 the self-serve Fantasy permission is gone. New apps 403 / `additional_authorization_required` even when OAuth mints a token. Review is 1–2 weeks and some applicants have waited a month. If this is not approved before 6 Sep, the Day-2 gate fires and live draft advisory is cut. | Apply at https://sports.yahoo.com/developer/access/ with any existing App ID. Do **not** delete and recreate the app — the create form no longer offers Fantasy Sports. Diagnostic: refresh_token grant returns 200 but `/fantasy/v2/game/nfl` returns 403 → Yahoo authorization, not local credentials. | |
 
 ---
 

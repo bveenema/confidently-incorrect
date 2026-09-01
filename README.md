@@ -52,12 +52,31 @@ If the Windows/WSL volume mount fails, the real runtime is a Linux VPS
 where `/srv/ci/` is a native path. Do not spend draft week debugging
 the mount.
 
+### Yahoo OAuth (one-time)
+
+Fantasy Sports API access is **approval-gated** (follow-up A-12). Apply
+at [sports.yahoo.com/developer/access](https://sports.yahoo.com/developer/access/)
+before expecting any live call to work. Do not delete an existing App
+ID — new registrations no longer offer the Fantasy Sports permission.
+
+Once Yahoo has bound the app:
+
+1. Write `$CI_STATE_DIR/tokens/yahoo-app.json` with `client_id` and
+   `client_secret`. Never put that file in the repo or the image.
+2. `python -m yahoo authorize` — opens the `oob` URL, paste the code,
+   token is written to `$CI_STATE_DIR/tokens/yahoo.json`.
+3. `python -m yahoo smoke` — reads own team, league settings, and
+   roster. Refresh after expiry is unattended.
+
+A 401 means the refresh token is dead and needs a browser. A 403
+means the access program, not a bad token.
+
 ## Make targets
 
 | Target | What it does |
 |---|---|
 | `make test` | Unit tests |
-| `make test-integration` | Live APIs (needs credentials; empty until those exist) |
+| `make test-integration` | Live APIs (needs `CI_STATE_DIR` with Yahoo token files) |
 | `make lint` | ruff + mypy |
 | `make fmt` | ruff format |
 | `make build` | `podman build`, tagged `ci:<shortsha>` |
