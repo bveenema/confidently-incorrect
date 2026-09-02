@@ -1,0 +1,81 @@
+{
+  "_readme": "FAKE VALUES. Copy this file to $CI_STATE_DIR/league-settings.json and replace every number and label from the Yahoo league settings page. Do not leave these defaults. Extra keys are ignored.",
+  "schema_version": 1,
+  "team_count": 99,
+  "roster_slots": [
+    {"position": "QB", "count": 7},
+    {"position": "WR", "count": 3},
+    {"position": "RB", "count": 3},
+    {"position": "TE", "count": 3},
+    {"position": "W/R/T", "count": 3},
+    {"position": "K", "count": 3},
+    {"position": "DEF", "count": 3},
+    {"position": "BN", "count": 9},
+    {"position": "IR", "count": 9}
+  ],
+  "scoring": {
+    "fractional_points": true,
+    "negative_points": "example-unresolved",
+    "categories": [
+      {"stat": "pass_cmp", "points": 99},
+      {"stat": "pass_att", "points": 99},
+      {"stat": "pass_yd", "points": 1, "per": 99},
+      {"stat": "pass_td", "points": 99},
+      {"stat": "pass_int", "points": 99},
+      {"stat": "rush_att", "points": 99},
+      {"stat": "rush_yd", "points": 1, "per": 99},
+      {"stat": "rush_td", "points": 99},
+      {"stat": "rec", "points": 99},
+      {"stat": "rec_yd", "points": 1, "per": 99},
+      {"stat": "rec_td", "points": 99},
+      {"stat": "fum", "points": 99},
+      {"stat": "fum_lost", "points": 99},
+      {"stat": "two_pt", "points": 99},
+      {"stat": "fg_0_19", "points": 99},
+      {"stat": "fg_20_29", "points": 99},
+      {"stat": "fg_30_39", "points": 99},
+      {"stat": "fg_40_49", "points": 99},
+      {"stat": "fg_50_59", "points": 99},
+      {"stat": "fg_60_plus", "points": 99},
+      {"stat": "fg_miss_0_19", "points": 99},
+      {"stat": "fg_miss_20_29", "points": 99},
+      {"stat": "fg_miss_30_39", "points": 99},
+      {"stat": "fg_miss_40_49", "points": 99},
+      {"stat": "fg_miss_50_59", "points": 99},
+      {"stat": "fg_miss_60_plus", "points": 99},
+      {"stat": "pat_made", "points": 99},
+      {"stat": "pat_miss", "points": 99},
+      {"stat": "dst_sack", "points": 99},
+      {"stat": "dst_int", "points": 99},
+      {"stat": "dst_fum_rec", "points": 99},
+      {"stat": "dst_td", "points": 99},
+      {"stat": "dst_safety", "points": 99},
+      {"stat": "dst_blk", "points": 99},
+      {"stat": "dst_return_yd", "points": 1, "per": 99},
+      {"stat": "dst_pts_allowed", "points": 99, "range": [0, 0]},
+      {"stat": "dst_pts_allowed", "points": 99, "range": [1, 6]},
+      {"stat": "dst_yds_allowed", "points": 99, "range": [0, 99]}
+    ]
+  },
+  "trade_deadline": "2099-01-01",
+  "waiver": {
+    "type": "example-waiver",
+    "days": 99,
+    "process": "example-process"
+  },
+  "playoff": {
+    "teams": 99,
+    "weeks": [1]
+  },
+  "draft": {
+    "rounds": 99,
+    "type": "example-draft"
+  },
+  "trade_review": {
+    "votes_to_veto": 99,
+    "days": 99
+  },
+  "max_acquisitions": 99,
+  "draft_pick_trades": true,
+  "ir_adds_from_waivers": true
+}

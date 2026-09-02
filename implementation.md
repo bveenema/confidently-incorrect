@@ -130,6 +130,13 @@ and ship the cheat sheet only.
 - Build the scoring engine: raw stat line → league points
 - Validate against a known past week if any data is available
 
+Draft path while A-12 is open (D-83): copy
+`templates/league-settings.json` to `$CI_STATE_DIR/league-settings.json`
+and fill it from the Yahoo settings page. The loader reads that file;
+it does not hardcode team count, roster, or scoring. `python -m data
+validate-league-settings` checks the file. Live API ingest and the
+per-run diff (D-47) wait on the access program.
+
 ### Day 3-5 — Projections and tiers
 
 - FantasyPros subscription and API access

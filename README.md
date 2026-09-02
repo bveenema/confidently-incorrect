@@ -71,6 +71,50 @@ Once Yahoo has bound the app:
 A 401 that survives one refresh means the refresh token is dead and
 needs a browser. A 403 means the access program, not a bad token.
 
+### League settings (draft path)
+
+Yahoo Fantasy ingest is blocked until the access program approves the
+app (A-12 / D-47). Until then the scoring engine and draft tool read
+`$CI_STATE_DIR/league-settings.json`. Nothing league-derived is a
+constant in source (D-83).
+
+1. Copy [`templates/league-settings.json`](templates/league-settings.json)
+   to `$CI_STATE_DIR/league-settings.json`.
+2. Replace every fake value from the Yahoo league settings page
+   (League → Settings). The template's `99`s, `example-*` labels,
+   and inverted booleans (`fractional_points`, `draft_pick_trades`,
+   `ir_adds_from_waivers`) are intentional — leaving them will
+   silently score or constrain the wrong game.
+3. `python -m data validate-league-settings` — exits 0 if the file is
+   usable, or prints every problem and exits 1. `--path` points at
+   another file (including the template).
+
+If the file is missing or invalid the process exits non-zero. There
+are no built-in 8-team or standard-scoring fallbacks. Edit the file
+again if the league grows; the loader does not care whether
+`team_count` is 8 or 12.
+
+| JSON field | Yahoo settings page |
+|---|---|
+| `team_count` | Number of teams |
+| `roster_slots` | Roster positions and counts |
+| `scoring.fractional_points` | Fractional Points |
+| `scoring.negative_points` | Negative Points (store the label; A-6 is still open) |
+| `scoring.categories` | Every scoring line. `points` is the fantasy value; `per` is stat units per point (yards); `range` is an inclusive `[min, max]` band (DST points/yards allowed) |
+| `trade_deadline` | Trade deadline (`YYYY-MM-DD`, America/New_York) |
+| `waiver` | Waiver type, days, and process |
+| `playoff` | Playoff teams and weeks |
+| `draft` | Rounds and draft type |
+
+Stat slugs the scoring engine (#5) will consume: `pass_cmp`,
+`pass_att`, `pass_yd`, `pass_td`, `pass_int`, `rush_att`, `rush_yd`,
+`rush_td`, `rec`, `rec_yd`, `rec_td`, `fum`, `fum_lost`, `two_pt`,
+`fg_0_19`…`fg_60_plus`, `fg_miss_0_19`…`fg_miss_60_plus`, `pat_made`,
+`pat_miss`, `dst_sack`, `dst_int`, `dst_fum_rec`, `dst_td`,
+`dst_safety`, `dst_blk`, `dst_return_yd`, `dst_pts_allowed`,
+`dst_yds_allowed`. Extra well-formed categories are kept. Copy every
+Yahoo scoring line; omitted stats score zero later.
+
 ## Make targets
 
 | Target | What it does |

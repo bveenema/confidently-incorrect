@@ -87,8 +87,10 @@ These are not preferences.
 
 - **Never hardcode a league-derived value.** Team count, scoring table,
   roster slots, playoff structure, trade deadline, waiver rules — all
-  are read from the API at runtime. The league is expected to grow and
-  settings can change mid-season. A constant here is a silent bug.
+  are read at runtime. Until A-12 unblocks D-47, the source is
+  `$CI_STATE_DIR/league-settings.json` (D-83). After that, the Yahoo
+  API. The league is expected to grow and settings can change
+  mid-season. A constant here is a silent bug.
 - **Never let model output reach the Yahoo API unvalidated.** Guardrails
   are deterministic code between the GM decision and execution. A
   guardrail implemented as a prompt instruction is not a guardrail.
