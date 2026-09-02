@@ -60,8 +60,9 @@ Quality gates for `/ship`: `make lint` and `make test` must pass.
 
 - **Never hardcode league-derived values.** Team count, scoring table,
   roster slots, playoff structure, trade deadline, waiver rules are all
-  read from the Yahoo API at runtime. The league is expected to grow
-  from 8 teams and settings can change mid-season.
+  read at runtime — from `$CI_STATE_DIR/league-settings.json` until
+  A-12 unblocks D-47, then from the Yahoo API (D-83). The league is
+  expected to grow from 8 teams and settings can change mid-season.
 - **Never let model output reach the Yahoo API unvalidated.** Guardrails
   are deterministic code between the GM decision and execution.
 - **Never write real manager or team names** into `kb.db`, `notes/`,
