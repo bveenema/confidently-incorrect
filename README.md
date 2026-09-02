@@ -81,8 +81,10 @@ constant in source (D-83).
 1. Copy [`templates/league-settings.json`](templates/league-settings.json)
    to `$CI_STATE_DIR/league-settings.json`.
 2. Replace every fake value from the Yahoo league settings page
-   (League → Settings). The template's `99`s and `example-*` labels
-   are intentional — leaving them will silently score the wrong game.
+   (League → Settings). The template's `99`s, `example-*` labels,
+   and inverted booleans (`fractional_points`, `draft_pick_trades`,
+   `ir_adds_from_waivers`) are intentional — leaving them will
+   silently score or constrain the wrong game.
 3. `python -m data validate-league-settings` — exits 0 if the file is
    usable, or prints every problem and exits 1. `--path` points at
    another file (including the template).

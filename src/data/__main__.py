@@ -37,7 +37,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     print(
         f"ok: {settings.source_path} "
         f"({settings.team_count} teams, {slot_count} roster slots, "
-        f"{len(settings.scoring.categories)} scoring categories)"
+        f"{len(settings.scoring.categories)} scoring categories, "
+        f"fractional_points={str(settings.scoring.fractional_points).lower()})"
     )
     return 0
 

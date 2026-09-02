@@ -75,7 +75,7 @@
     "votes_to_veto": 99,
     "days": 99
   },
-  "max_acquisitions": null,
-  "draft_pick_trades": false,
-  "ir_adds_from_waivers": false
+  "max_acquisitions": 99,
+  "draft_pick_trades": true,
+  "ir_adds_from_waivers": true
 }

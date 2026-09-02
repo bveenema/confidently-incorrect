@@ -20,14 +20,14 @@ def _minimal(team_count: int = 8) -> dict:
         "team_count": team_count,
         "roster_slots": [{"position": "QB", "count": 1}],
         "scoring": {
-            "fractional_points": False,
-            "negative_points": "no",
-            "categories": [{"stat": "pass_td", "points": 4}],
+            "fractional_points": True,
+            "negative_points": "example-unresolved",
+            "categories": [{"stat": "pass_td", "points": 99}],
         },
-        "trade_deadline": "2026-11-28",
-        "waiver": {"type": "rolling", "days": 2, "process": "tuesday"},
-        "playoff": {"teams": 8, "weeks": [15, 16, 17]},
-        "draft": {"rounds": 15, "type": "snake"},
+        "trade_deadline": "2099-06-01",
+        "waiver": {"type": "example-waiver", "days": 7, "process": "example"},
+        "playoff": {"teams": 3, "weeks": [1, 2]},
+        "draft": {"rounds": 3, "type": "example-draft"},
     }
 
 
@@ -44,6 +44,10 @@ def test_template_validates() -> None:
     assert settings.scoring.categories
     assert any(cat.per == 99 for cat in settings.scoring.categories)
     assert any(cat.bounds == (0, 0) for cat in settings.scoring.categories)
+    assert settings.scoring.fractional_points is True
+    assert settings.draft_pick_trades is True
+    assert settings.ir_adds_from_waivers is True
+    assert settings.max_acquisitions == 99
 
 
 def test_loads_team_count_from_file_not_a_constant(tmp_path: Path) -> None:
@@ -53,7 +57,7 @@ def test_loads_team_count_from_file_not_a_constant(tmp_path: Path) -> None:
     twelve = load_league_settings_file(_write(twelve_dir, _minimal(12)))
     assert eight.team_count == 8
     assert twelve.team_count == 12
-    assert eight.trade_deadline == date(2026, 11, 28)
+    assert eight.trade_deadline == date(2099, 6, 1)
     assert eight.roster_slots[0].position == "QB"
 
 
@@ -162,6 +166,7 @@ def test_cli_ok(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
     out = capsys.readouterr().out
     assert "ok:" in out
     assert "11 teams" in out
+    assert "fractional_points=true" in out
 
 
 def test_cli_missing(
