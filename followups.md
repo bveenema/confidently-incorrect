@@ -28,7 +28,7 @@ Ten days. These gate the draft working at all.
 | A-3 | ☐ | FantasyPros billing — monthly available, or annual only? | $45 vs ~$108 for the season | Check at signup | |
 | A-4 | ☐ | Is Yahoo's draft results endpoint available and fresh **during** a live draft? | The entire live advisory design assumes it. No documentation answers this | Join a Yahoo mock draft, run the polling loop. **Do by day 6** | |
 | A-5 | ☐ | Final team count | 8 confirmed, 2+ expected. Changes draft position, round count, playoff race, veto threshold | Confirm with commissioner the day before | |
-| A-6 | ☐ | "Negative Points: No" — does it disable penalties, or floor a player's total at zero? | Settings list explicit negatives (INT −1, fumble −2, missed FG −3/−4). Changes how much to discount turnover-prone QBs, and QBs dominate this scoring | Ask the commissioner | |
+| A-6 | ☐ | "Negative Points: No" — does it disable penalties, or floor a player's total at zero? | Settings list explicit negatives (INT −1, fumble −2, missed FG −3/−4). Changes how much to discount turnover-prone QBs, and QBs dominate this scoring | Ask the commissioner | Engine (D-84) currently applies signed category points as written; no floor, no stripped penalties. Interpretation still unconfirmed. |
 | A-7 | ☐ | Pre-rank sheet entered into Yahoo | Outermost fallback if the connection drops mid-draft. No API — manual entry, 60–90 min | Day 9 | |
 | A-8 | ☐ | Tell the league it's AI-managed and that a public version is planned | Consent is cheap now, awkward in October | One Slack message | |
 | A-9 | ☐ | Verify runtime state at `/srv/ci/` is outside the git working directory | A checkout, stash, or clean would destroy the season's attribution data. Sharpest footgun in the deploy story | Run `git clean -nxd` on the VPS and confirm nothing under `/srv/ci/` is listed | Local layout uses `CI_STATE_DIR` outside the worktree. **VPS check still open.** |
@@ -51,6 +51,7 @@ Ten days. These gate the draft working at all.
 | B-7 | ☐ | Push alerts actually arrive, on a locked phone, on a Sunday | The entire failure design assumes the alert reaches you. Untested alerting is no alerting | Fire a test P1 from the VPS before week 1 | |
 | B-8 | ☐ | Dead-man switch fires when a run is skipped entirely | Ping-on-submission is the design; verify a run that submits nothing does NOT ping | Disable a timer deliberately, confirm the alert arrives | |
 | B-9 | ☐ | Does the API expose live in-progress matchup scores mid-week? | Score-aware late passes depend on it. If scores only settle post-week, the Sunday-night and Monday passes lose their main input | Check a matchup endpoint during Sunday afternoon games | |
+| B-10 | ☐ | Confirm a real Yahoo box score matches `fantasy_points` (leftover yards, kicker bands, DST tiers, signed penalties) | D-84 assumes leftover yards are discarded when fractional points are off. If Yahoo differs, projections and Tuesday attribution silently drift | Pick one completed week-1 game per position, compute from the stat line, compare to Yahoo's fantasy total | |
 
 ---
 
