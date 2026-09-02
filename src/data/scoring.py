@@ -18,8 +18,10 @@ def fantasy_points(scoring: Scoring, stats: Mapping[str, Any]) -> int | float:
     """Apply `scoring.categories` to `stats` (slug → amount).
 
     Missing slugs are zero for count and rate categories. Band
-    categories do not treat a missing slug as 0 — a QB line must not
-    collect a DST shutout. An explicit 0 does match a `[0, 0]` band.
+    categories snap the stat half-away-from-zero before the inclusive
+    `[min, max]` check, and do not treat a missing slug as 0 — a QB
+    line must not collect a DST shutout. An explicit 0 does match
+    a `[0, 0]` band.
     Unknown keys, including any provider precomputed total, are
     ignored. Kicker distances must already be binned into slugs
     (`fg_0_19`, `fg_miss_40_49`, …).
@@ -44,8 +46,11 @@ def _category_points(
     if category.bounds is not None:
         if value is None:
             return 0.0
+        # Bands are integer box-score tiers. Snap projections so 13.4
+        # PA still hits [7, 13] instead of falling in the crack.
+        snapped = _round_half_away(value)
         low, high = category.bounds
-        return category.points if low <= value <= high else 0.0
+        return category.points if low <= snapped <= high else 0.0
     amount = 0.0 if value is None else value
     if category.per is not None:
         if fractional_points:

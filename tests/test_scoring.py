@@ -167,16 +167,33 @@ def test_each_counting_and_rate_category(stat: str, amount: int, expected: int) 
     ("pts_allowed", "expected"),
     [
         (0, 10),
+        (0.4, 10),
+        (0.5, 7),
         (3, 7),
+        (6, 7),
+        (6.4, 7),
+        (6.5, 4),
+        (7, 4),
         (10, 4),
+        (13, 4),
+        (13.4, 4),
+        (13.5, 1),
+        (14, 1),
         (17, 1),
+        (20, 1),
+        (20.4, 1),
+        (20.5, 0),
+        (21, 0),
         (24, 0),
         (30, -1),
         (40, -4),
+        (99, -4),
+        (99.4, -4),
+        (99.5, 0),
         (100, 0),
     ],
 )
-def test_dst_points_allowed_tiers(pts_allowed: int, expected: int) -> None:
+def test_dst_points_allowed_tiers(pts_allowed: float, expected: int) -> None:
     scoring = _table(_DST_BANDS)
     assert fantasy_points(scoring, {"dst_pts_allowed": pts_allowed}) == expected
 
@@ -185,14 +202,22 @@ def test_dst_points_allowed_tiers(pts_allowed: int, expected: int) -> None:
     ("yds_allowed", "expected"),
     [
         (50, 10),
+        (99, 10),
+        (99.4, 10),
+        (99.5, 5),
+        (100, 5),
         (150, 5),
+        (199, 5),
+        (199.4, 5),
+        (199.5, 0),
+        (200, 0),
         (250, 0),
         (350, -3),
         (450, -5),
         (1000, 0),
     ],
 )
-def test_dst_yards_allowed_tiers(yds_allowed: int, expected: int) -> None:
+def test_dst_yards_allowed_tiers(yds_allowed: float, expected: int) -> None:
     scoring = _table(_DST_BANDS)
     assert fantasy_points(scoring, {"dst_yds_allowed": yds_allowed}) == expected
 
