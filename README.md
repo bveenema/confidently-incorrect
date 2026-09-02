@@ -106,7 +106,7 @@ again if the league grows; the loader does not care whether
 | `playoff` | Playoff teams and weeks |
 | `draft` | Rounds and draft type |
 
-Stat slugs the scoring engine (#5) will consume: `pass_cmp`,
+Stat slugs `data.fantasy_points` consumes: `pass_cmp`,
 `pass_att`, `pass_yd`, `pass_td`, `pass_int`, `rush_att`, `rush_yd`,
 `rush_td`, `rec`, `rec_yd`, `rec_td`, `fum`, `fum_lost`, `two_pt`,
 `fg_0_19`…`fg_60_plus`, `fg_miss_0_19`…`fg_miss_60_plus`, `pat_made`,

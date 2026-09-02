@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Scoring engine: `data.fantasy_points` turns a raw stat line into
+  league points from the ingested table (D-84 / D-48). Leftover yards
+  are discarded when fractional points are off; DST bands snap
+  projections onto integer tiers. Provider point totals are ignored.
+  A-6 still open — signed penalties apply as written.
 - Draft-path league settings loader: `$CI_STATE_DIR/league-settings.json`
   (schema + fake template, `python -m data validate-league-settings`).
   Missing or invalid files fail loudly; no hardcoded team count,
