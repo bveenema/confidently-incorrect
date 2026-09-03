@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Player pool: merge FantasyPros and Tank01 season-long stat lines
+  under league scoring, rank, build positional tiers, and compute
+  ADP delta (`python -m data player-pool`). Incomplete K/DST lines
+  are flagged and kept out of overall rank (D-88 / A-13).
 - Tank01 client: `$CI_STATE_DIR/tokens/tank01.json`, mapped nested
   projection stat lines (not provider point totals), season and weekly
   pulls, injuries, news, and implied team totals from betting lines

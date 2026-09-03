@@ -93,6 +93,15 @@ class ProjectionSet:
 
 
 @dataclass(frozen=True)
+class PlayerIdentity:
+    player_id: str
+    yahoo_id: str | None
+    name: str
+    position: str
+    team: str
+
+
+@dataclass(frozen=True)
 class Injury:
     player_id: str
     yahoo_id: str | None
@@ -289,20 +298,31 @@ class Tank01Client:
             defenses=defenses,
         )
 
+    def player_list(self) -> tuple[PlayerIdentity, ...]:
+        """Full getNFLPlayerList — identity + Yahoo id for the merge key."""
+        body = self._player_list_body()
+        out: list[PlayerIdentity] = []
+        for row in body:
+            parsed = _parse_identity(row)
+            if parsed is not None:
+                out.append(parsed)
+        return tuple(out)
+
     def injuries(self) -> tuple[Injury, ...]:
         """Players with a non-empty injury designation from getNFLPlayerList."""
-        payload = self._get("/getNFLPlayerList", {})
-        body = _response_body(payload, "/getNFLPlayerList")
-        if not isinstance(body, list):
-            raise DataAPIError("Tank01 getNFLPlayerList body must be a list")
         out: list[Injury] = []
-        for row in body:
-            if not isinstance(row, dict):
-                continue
+        for row in self._player_list_body():
             parsed = _parse_injury(row)
             if parsed is not None:
                 out.append(parsed)
         return tuple(out)
+
+    def _player_list_body(self) -> list[dict[str, Any]]:
+        payload = self._get("/getNFLPlayerList", {})
+        body = _response_body(payload, "/getNFLPlayerList")
+        if not isinstance(body, list):
+            raise DataAPIError("Tank01 getNFLPlayerList body must be a list")
+        return [row for row in body if isinstance(row, dict)]
 
     def news(
         self,
@@ -455,6 +475,23 @@ def _parse_defense_projection(team_id: str, row: Mapping[str, Any]) -> PlayerPro
         position="DST",
         team=abv,
         stats=map_defense_stats(row),
+    )
+
+
+def _parse_identity(row: Mapping[str, Any]) -> PlayerIdentity | None:
+    player_id = str(row.get("playerID") or "").strip()
+    if not player_id:
+        return None
+    yahoo = row.get("yahooPlayerID")
+    pos = str(row.get("pos") or "")
+    if pos == "PK":
+        pos = "K"
+    return PlayerIdentity(
+        player_id=player_id,
+        yahoo_id=str(yahoo) if yahoo not in (None, "") else None,
+        name=str(row.get("longName") or ""),
+        position=pos,
+        team=str(row.get("team") or ""),
     )
 
 

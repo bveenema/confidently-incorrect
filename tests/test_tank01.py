@@ -330,6 +330,21 @@ def test_injuries_and_news(tmp_path: Path) -> None:
     assert news[0].player_ids == ("5083754",)
 
 
+def test_player_list_includes_healthy(tmp_path: Path) -> None:
+    _write_key(tmp_path)
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.url.path.endswith("/getNFLPlayerList")
+        return httpx.Response(200, json=PLAYERS)
+
+    with _client(tmp_path, handler) as client:
+        rows = client.player_list()
+    assert {row.player_id for row in rows} == {"1", "2"}
+    healthy = next(row for row in rows if row.player_id == "1")
+    assert healthy.yahoo_id == "100"
+    assert healthy.position == "WR"
+
+
 def test_implied_team_totals(tmp_path: Path) -> None:
     _write_key(tmp_path)
 

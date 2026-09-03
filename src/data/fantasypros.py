@@ -93,6 +93,7 @@ class ConsensusRank:
     position: str
     team: str
     rank_ecr: int | None
+    rank_ave: float | None
     rank_std: float | None
     rank_min: int | None
     rank_max: int | None
@@ -250,11 +251,12 @@ class FantasyProsClient:
         *,
         position: str,
         scoring: str,
+        ranking_type: str | None = None,
     ) -> tuple[ConsensusRank, ...]:
-        payload = self._get(
-            f"/nfl/{season}/consensus-rankings",
-            {"position": position, "scoring": scoring},
-        )
+        params: dict[str, str] = {"position": position, "scoring": scoring}
+        if ranking_type:
+            params["type"] = ranking_type
+        payload = self._get(f"/nfl/{season}/consensus-rankings", params)
         return tuple(_parse_rank(row) for row in _object_list(payload, "players"))
 
     def injuries(self) -> tuple[Injury, ...]:
@@ -380,6 +382,7 @@ def _parse_rank(row: Mapping[str, Any]) -> ConsensusRank:
         position=str(row.get("player_position_id") or row.get("position_id") or ""),
         team=str(row.get("player_team_id") or row.get("team_id") or ""),
         rank_ecr=_as_int(row.get("rank_ecr")),
+        rank_ave=_as_float(row.get("rank_ave")),
         rank_std=_as_float(row.get("rank_std")),
         rank_min=_as_int(row.get("rank_min")),
         rank_max=_as_int(row.get("rank_max")),

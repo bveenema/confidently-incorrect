@@ -85,6 +85,7 @@ RANKS = {
             "player_team_id": "DET",
             "player_yahoo_id": "42630",
             "rank_ecr": 1,
+            "rank_ave": "1.25",
             "rank_min": "1",
             "rank_max": "2",
             "rank_std": "0.40",
@@ -260,8 +261,25 @@ def test_rankings_capture_std(tmp_path: Path) -> None:
     with _client(tmp_path, handler) as client:
         ranks = client.consensus_rankings(2026, position="RB", scoring="PPR")
     assert ranks[0].rank_std == 0.4
+    assert ranks[0].rank_ave == 1.25
     assert ranks[0].yahoo_id == "42630"
     assert ranks[0].tier == 1
+
+
+def test_rankings_pass_adp_type(tmp_path: Path) -> None:
+    _write_key(tmp_path)
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.url.params.get("type") == "ADP"
+        assert request.url.params.get("position") == "ALL"
+        assert request.url.params.get("scoring") == "PPR"
+        return httpx.Response(200, json=RANKS)
+
+    with _client(tmp_path, handler) as client:
+        ranks = client.consensus_rankings(
+            2026, position="ALL", scoring="PPR", ranking_type="ADP"
+        )
+    assert ranks[0].rank_ecr == 1
 
 
 def test_injuries_and_news(tmp_path: Path) -> None:
