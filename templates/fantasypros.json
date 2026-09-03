@@ -1,0 +1,4 @@
+{
+  "_readme": "FAKE VALUE. Copy this file to $CI_STATE_DIR/tokens/fantasypros.json and replace api_key. Never put the real key in this templates/ copy.",
+  "api_key": "REPLACE_ME"
+}
