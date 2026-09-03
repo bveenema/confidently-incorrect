@@ -1,4 +1,4 @@
-"""CLI: league settings, FantasyPros smoke, Tank01 smoke."""
+"""CLI: league settings, provider smokes, player pool."""
 
 from __future__ import annotations
 
@@ -13,6 +13,7 @@ from data.errors import DataError, LeagueSettingsError
 from data.fantasypros import ATTRIBUTION, FantasyProsClient
 from data.fantasypros import state_dir as fantasypros_state_dir
 from data.league_settings import load_league_settings, load_league_settings_file
+from data.pool import PlayerPool, PooledPlayer, load_player_pool
 from data.tank01 import ATTRIBUTION as TANK01_ATTRIBUTION
 from data.tank01 import Tank01Client
 from data.tank01 import state_dir as tank01_state_dir
@@ -49,6 +50,16 @@ def main(argv: Sequence[str] | None = None) -> int:
         default="",
         help="YYYYMMDD for betting odds (default: today America/New_York)",
     )
+    pool = sub.add_parser(
+        "player-pool",
+        help="merge sources, score, tier, and print ADP delta",
+    )
+    pool.add_argument(
+        "--season",
+        type=int,
+        default=0,
+        help="NFL season year (default: current year in America/New_York)",
+    )
     args = parser.parse_args(list(argv) if argv is not None else None)
     if args.command == "validate-league-settings":
         return _validate_league_settings(args.path)
@@ -56,6 +67,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         return _fantasypros_smoke(args.season)
     if args.command == "tank01-smoke":
         return _tank01_smoke(args.odds_date)
+    if args.command == "player-pool":
+        return _player_pool(args.season)
     print(f"error: unknown command {args.command!r}", file=sys.stderr)
     return 2
 
@@ -120,6 +133,110 @@ def _tank01_smoke(odds_date: str) -> int:
     )
     print(TANK01_ATTRIBUTION)
     return 0
+
+
+def _player_pool(season: int) -> int:
+    year = season or datetime.now(ZoneInfo("America/New_York")).year
+    try:
+        settings = load_league_settings()
+        with (
+            FantasyProsClient(fantasypros_state_dir()) as fp,
+            Tank01Client(tank01_state_dir()) as tank,
+        ):
+            pool = load_player_pool(settings, fp, tank, season=year)
+    except DataError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 1
+    print(format_player_pool(pool))
+    print(ATTRIBUTION)
+    print(TANK01_ATTRIBUTION)
+    return 0
+
+
+def format_player_pool(pool: PlayerPool) -> str:
+    """Human-readable board: ranks, tiers, ADP gaps, QB sanity."""
+    players = pool.players
+    incomplete = sum(1 for p in players if p.scoring_incomplete)
+    unmatched_fp = sum(1 for p in players if p.join == "fp_only")
+    unmatched_tank = sum(1 for p in players if p.join == "tank_only")
+    lines = [
+        f"ok: season={pool.season} players={len(players)} "
+        f"adp_scoring={pool.adp_scoring} incomplete={incomplete} "
+        f"fp_only={unmatched_fp} tank_only={unmatched_tank}",
+        "",
+        "value rank (primary FantasyPros points)",
+        _header(),
+    ]
+    for row in pool.by_value_rank()[:15]:
+        lines.append(_row(row))
+    lines.extend(["", "positional tiers"])
+    for position in ("QB", "RB", "WR", "TE"):
+        group = pool.positional_tiers(position)
+        if not group:
+            continue
+        lines.append(f"  {position}")
+        for row in group[:12]:
+            marker = "  <-- tier break" if row.tier_break_after else ""
+            flag = " [incomplete]" if row.scoring_incomplete else ""
+            lines.append(
+                f"    T{row.tier} #{row.pos_rank} {row.name} "
+                f"fp={_pts(row.fp_points)}{flag}{marker}"
+            )
+    lines.extend(["", "ADP gaps (market later than us; complete lines only)"])
+    for row in pool.by_adp_gap()[:20]:
+        lines.append(
+            f"  {row.name} {row.position} value=#{row.value_rank} "
+            f"adp={_pts(row.adp)} gap={_pts(row.adp_delta)} "
+            f"fp={_pts(row.fp_points)} tank={_pts(row.tank_points)} "
+            f"d={_pts(row.source_delta)}"
+        )
+    check = pool.qb_inflation
+    status = "PASS" if check.ok else "FAIL"
+    lines.extend(
+        [
+            "",
+            f"QB inflation {status}: {check.detail}",
+        ]
+    )
+    for row in check.top_qbs:
+        lines.append(
+            f"  {row.name} value=#{row.value_rank} adp={_pts(row.adp)} "
+            f"gap={_pts(row.adp_delta)} fp={_pts(row.fp_points)}"
+        )
+    if not check.ok:
+        lines.append(
+            "  if this fails on live data, the scoring engine or ADP join is wrong"
+        )
+    return "\n".join(lines)
+
+
+def _header() -> str:
+    return (
+        f"{'#':>3} {'name':<22} {'pos':<3} {'fp':>5} {'tank':>5} "
+        f"{'d':>5} {'adp':>6} {'gap':>6} {'tier':>4}"
+    )
+
+
+def _row(player: PooledPlayer) -> str:
+    return (
+        f"{player.value_rank or '-':>3} "
+        f"{player.name[:22]:<22} "
+        f"{player.position:<3} "
+        f"{_pts(player.fp_points):>5} "
+        f"{_pts(player.tank_points):>5} "
+        f"{_pts(player.source_delta):>5} "
+        f"{_pts(player.adp):>6} "
+        f"{_pts(player.adp_delta):>6} "
+        f"{player.tier or '-':>4}"
+    )
+
+
+def _pts(value: int | float | None) -> str:
+    if value is None:
+        return "-"
+    if isinstance(value, float) and not value.is_integer():
+        return f"{value:.1f}"
+    return str(int(value))
 
 
 if __name__ == "__main__":
