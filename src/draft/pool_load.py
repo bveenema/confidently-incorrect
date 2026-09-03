@@ -35,10 +35,12 @@ def load_draft_pool(
         ):
             pool = load_player_pool(settings, fp, tank, season=year)
     except DataError as exc:
-        if snap.exists():
+        if snap.exists() and not refresh:
             return load_pool_snapshot(snap)
         raise DraftConfigError(
-            f"could not build the player pool and no snapshot at {snap}: {exc}"
+            "could not build the player pool"
+            + ("" if refresh else f" and no snapshot at {snap}")
+            + f": {exc}"
         ) from exc
     save_pool_snapshot(snap, pool)
     return pool

@@ -124,6 +124,11 @@ def advance_unnamed(board: DraftBoard) -> DraftBoard:
     _require_ready(board)
     overall = board.upcoming
     slot = slot_on_the_clock(overall, board.team_count)
+    if board.our_slot == slot:
+        raise DraftStateError(
+            f"pick {overall} is ours (slot {slot}) - record a player, "
+            "do not advance unnamed"
+        )
     pick = RecordedPick(
         overall=overall,
         slot=slot,

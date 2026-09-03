@@ -83,11 +83,14 @@ def _board(
             "autofocus></label> "
             '<button type="submit">Record pick</button></p>'
             "</form>"
-            '<form method="post" action="/advance">'
-            '<p><button type="submit">Other team picked (unnamed)</button> '
-            "— advances the clock without removing anyone from available."
-            "</p></form>"
         )
+        if clock != board.our_slot:
+            parts.append(
+                '<form method="post" action="/advance">'
+                '<p><button type="submit">Other team picked (unnamed)</button> '
+                "— advances the clock without removing anyone from available."
+                "</p></form>"
+            )
     if candidates:
         parts.append(f"<h2>Which {escape(query) or 'player'}?</h2><ul>")
         for player in candidates:
@@ -119,7 +122,8 @@ def _picks_section(picks: tuple[RecordedPick, ...]) -> str:
     rows = ["<h2>Picks</h2><ol>"]
     for pick in picks:
         if pick.kind == "unnamed":
-            label = f"#{pick.overall} slot {pick.slot} — unnamed"
+            flag = " (us)" if pick.ours else ""
+            label = f"#{pick.overall} slot {pick.slot} — unnamed{flag}"
         else:
             flag = " (us)" if pick.ours else ""
             label = (

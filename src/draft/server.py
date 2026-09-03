@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import parse_qs, urlparse
 
+from data.errors import DataError
 from data.league_settings import LeagueSettings, load_league_settings
 from data.pool import PlayerPool
 from draft.board import (
@@ -114,8 +115,13 @@ def _handle_pick(app: DraftApp, board: DraftBoard, form: dict[str, str]) -> _Res
         board = record_player(board, player)
         app.persist(board)
         return _Result(303, location=redirect_to(f"recorded {player.name}"))
-    matches = match_players(app.pool.players, query)
+    available = board.available(app.pool.players)
+    matches = match_players(available, query)
     if not matches:
+        drafted = match_players(app.pool.players, query)
+        if drafted:
+            names = ", ".join(player.name for player in drafted)
+            raise DraftConfigError(f"already drafted: {names}")
         raise DraftConfigError(f"no pool match for {query!r}")
     if len(matches) == 1:
         player = matches[0]
@@ -153,7 +159,7 @@ def make_handler(app: DraftApp) -> type[BaseHTTPRequestHandler]:
                     result = handle_request(
                         app, method, parsed.path, parsed.query, form
                     )
-            except DraftError as exc:
+            except (DraftError, DataError) as exc:
                 if method == "POST":
                     self._write(_Result(303, location=redirect_to(str(exc))))
                     return

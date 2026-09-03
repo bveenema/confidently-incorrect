@@ -63,6 +63,18 @@ def test_unnamed_advance_keeps_player_available() -> None:
     assert board.available((player,)) == (player,)
 
 
+def test_rejects_unnamed_advance_on_our_slot() -> None:
+    board = set_our_slot(new_board(8, 2), 8)
+    for _ in range(7):
+        board = advance_unnamed(board)
+    assert board.upcoming == 8
+    assert board.turn()
+    with pytest.raises(DraftStateError, match="is ours"):
+        advance_unnamed(board)
+    assert board.upcoming == 8
+    assert board.our_roster() == ()
+
+
 def test_turn_and_undo() -> None:
     board = set_our_slot(new_board(8, 2), 8)
     for _ in range(7):
@@ -139,7 +151,7 @@ def test_corrupt_board_fails_loud(tmp_path: Path) -> None:
 
 
 def test_settings_mismatch_on_load(tmp_path: Path) -> None:
-    board = set_our_slot(new_board(8, 3), 1)
+    board = set_our_slot(new_board(8, 3), 2)
     board = advance_unnamed(board)
     save_board(tmp_path, board)
     with pytest.raises(DraftStateError, match="changed after"):

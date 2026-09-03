@@ -10,7 +10,7 @@ from tests.test_league_settings import _minimal, _write
 from data.league_settings import load_league_settings, load_league_settings_file
 from data.pool import PlayerPool, PooledPlayer, QbInflationCheck
 from draft.__main__ import main
-from draft.errors import DraftConfigError
+from draft.errors import DraftConfigError, DraftStateError
 from draft.io import save_pool_snapshot
 from draft.pool_load import load_draft_pool
 from draft.server import DraftApp, handle_request, require_snake, start_server
@@ -96,6 +96,16 @@ def test_setup_pick_advance_undo(tmp_path: Path) -> None:
     assert undone.status == 303
 
 
+def test_page_hides_unnamed_on_our_pick(tmp_path: Path) -> None:
+    app = _app(tmp_path, (_player("Alpha", "1"),))
+    handle_request(app, "POST", "/setup", "", {"our_slot": "1"})
+    page = handle_request(app, "GET", "/", "", {})
+    assert page.body is not None
+    assert "Other team picked" not in page.body
+    with pytest.raises(DraftStateError, match="is ours"):
+        handle_request(app, "POST", "/advance", "", {})
+
+
 def test_ambiguous_pick_lists_candidates(tmp_path: Path) -> None:
     players = (
         _player("Josh Allen", "1", team="BUF"),
@@ -117,6 +127,14 @@ def test_ambiguous_pick_lists_candidates(tmp_path: Path) -> None:
     page = handle_request(app, "GET", "/", "", {})
     assert page.body is not None
     assert "JAX" in page.body
+
+
+def test_pick_already_drafted(tmp_path: Path) -> None:
+    app = _app(tmp_path, (_player("Alpha", "1"),))
+    handle_request(app, "POST", "/setup", "", {"our_slot": "1"})
+    handle_request(app, "POST", "/pick", "", {"q": "Alpha"})
+    with pytest.raises(DraftConfigError, match="already drafted"):
+        handle_request(app, "POST", "/pick", "", {"q": "Alpha"})
 
 
 def test_unknown_player(tmp_path: Path) -> None:
