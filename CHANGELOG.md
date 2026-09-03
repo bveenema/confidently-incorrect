@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Tank01 client: `$CI_STATE_DIR/tokens/tank01.json`, mapped nested
+  projection stat lines (not provider point totals), season and weekly
+  pulls, injuries, news, and implied team totals from betting lines
+  (`python -m data tank01-smoke`). Live Basic-tier check recorded as
+  A-15 / D-87.
 - Record D-85: the 6 Sep draft proceeds without live Yahoo API access
   (manual settings and picks). A-12 stays open for the season path.
 - FantasyPros smoke treats truncation as fewer rows than `count`. HOF

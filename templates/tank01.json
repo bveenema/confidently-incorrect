@@ -1,0 +1,4 @@
+{
+  "_readme": "FAKE VALUE. Copy this file to $CI_STATE_DIR/tokens/tank01.json and replace api_key. Never put the real key in this templates/ copy. Subscribe to the NFL Live API (not Tank01 Fantasy Stats, which is NBA) on the RapidAPI Basic plan — free, 1000 hits/month, no credit card. The key is the RapidAPI application key (x-rapidapi-key). Host is fixed in code: tank01-nfl-live-in-game-real-time-statistics-nfl.p.rapidapi.com.",
+  "api_key": "REPLACE_ME"
+}

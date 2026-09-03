@@ -109,6 +109,23 @@ pool (`tier=free`). After upgrading to HOF, mint a production key at
 https://secure.fantasypros.com/api-keys if smoke still reports
 10-player pages. Attribution string is `data.ATTRIBUTION`.
 
+### Tank01 (secondary projections)
+
+RapidAPI Basic is enough to validate; Pro ($10/mo, 1000 req/day) is
+the season plan (D-20). Copy
+[`templates/tank01.json`](templates/tank01.json) to
+`$CI_STATE_DIR/tokens/tank01.json` and replace `api_key` with the
+RapidAPI application key. Subscribe to **Tank01 NFL Live In-Game**
+(not Tank01 Fantasy Stats — that product is NBA).
+
+`python -m data tank01-smoke` reads season-long and week-1 projections,
+injuries (from the player list), recent news, and implied team totals
+derived from betting lines for `--odds-date YYYYMMDD` (default today
+ET). Provider `fantasyPointsDefault` totals are dropped; nested
+Passing/Rushing/Receiving/Kicking/DST stats map onto engine slugs.
+Kicker lines are `fg`/`fga`/`pat_*` only (no distance bands). DST has
+no return yards. Attribution is `data.TANK01_ATTRIBUTION`.
+
 | JSON field | Yahoo settings page |
 |---|---|
 | `team_count` | Number of teams |
@@ -135,7 +152,7 @@ Yahoo scoring line; omitted stats score zero later.
 | Target | What it does |
 |---|---|
 | `make test` | Unit tests |
-| `make test-integration` | Live APIs (needs `CI_STATE_DIR` with Yahoo and/or FantasyPros token files) |
+| `make test-integration` | Live APIs (needs `CI_STATE_DIR` with Yahoo and/or FantasyPros / Tank01 token files) |
 | `make lint` | ruff + mypy |
 | `make fmt` | ruff format |
 | `make build` | `podman build`, tagged `ci:<shortsha>` |
