@@ -56,6 +56,9 @@ STAT_MAP = {
     "def_safety": "dst_safety",
     "def_pa": "dst_pts_allowed",
     "def_tyda": "dst_yds_allowed",
+    # Not engine slugs — kept so issue 8 can see FG volume. No distance bands.
+    "fg": "fg",
+    "fga": "fga",
 }
 
 
@@ -277,6 +280,11 @@ class FantasyProsClient:
         ranks = self.consensus_rankings(season, position="RB", scoring="PPR")
         injuries = self.injuries()
         news = self.news(category="injury", limit=3)
+        if not week0.players or not week1.players:
+            raise DataAPIError(
+                "FantasyPros smoke got an empty projection set "
+                f"(week0={len(week0.players)} week1={len(week1.players)})."
+            )
         if week0.truncated or week1.truncated:
             raise DataAPIError(
                 "FantasyPros response is truncated "
@@ -311,8 +319,7 @@ class FantasyProsClient:
         )
         if response.status_code != 200:
             raise DataAPIError(
-                f"FantasyPros GET {path} failed: status={response.status_code} "
-                f"body={response.text[:300]}"
+                f"FantasyPros GET {path} failed: status={response.status_code}"
             )
         try:
             payload = response.json()

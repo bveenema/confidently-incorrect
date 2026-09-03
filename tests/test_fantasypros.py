@@ -145,6 +145,40 @@ def test_map_stat_line_drops_points_and_renames() -> None:
     assert mapped["pass_int"] == 11.19
     assert mapped["fum_lost"] == 4.1
     assert mapped["two_pt"] == 0.4
+    rb = map_stat_line(
+        {
+            "points": 99,
+            "rec_rec": 71.3,
+            "rec_yds": 581.13,
+            "rec_tds": 4.13,
+            "rush_yds": 1383.71,
+        }
+    )
+    assert rb["rec"] == 71.3
+    assert rb["rec_yd"] == 581.13
+    assert rb["rec_td"] == 4.13
+    kicker = map_stat_line({"points": 151.44, "fg": 34.83, "fga": 39.55, "xpt": 46.96})
+    assert kicker["pat_made"] == 46.96
+    assert kicker["fg"] == 34.83
+    assert kicker["fga"] == 39.55
+    dst = map_stat_line(
+        {
+            "points": 7.91,
+            "def_sack": 2.93,
+            "def_int": 0.9,
+            "def_fr": 0.53,
+            "def_td": 0.19,
+            "def_safety": 0,
+            "def_pa": 16.87,
+            "def_tyda": 307.9,
+        }
+    )
+    assert dst["dst_sack"] == 2.93
+    assert dst["dst_int"] == 0.9
+    assert dst["dst_fum_rec"] == 0.53
+    assert dst["dst_td"] == 0.19
+    assert dst["dst_pts_allowed"] == 16.87
+    assert dst["dst_yds_allowed"] == 307.9
 
 
 def test_mapped_line_scores_with_league_table() -> None:
@@ -236,11 +270,23 @@ def test_http_error(tmp_path: Path) -> None:
     _write_key(tmp_path)
 
     def handler(_request: httpx.Request) -> httpx.Response:
-        return httpx.Response(403, json={"message": "Forbidden"})
+        return httpx.Response(403, text="Forbidden api_key=test-key")
 
     with _client(tmp_path, handler) as client:
-        with pytest.raises(DataAPIError, match="403"):
+        with pytest.raises(DataAPIError, match="403") as exc:
             client.projections(2026, week=0)
+    assert "test-key" not in str(exc.value)
+
+
+def test_smoke_fails_when_empty(tmp_path: Path) -> None:
+    _write_key(tmp_path)
+
+    def handler(_request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, json={"season": "2026", "week": "0", "players": []})
+
+    with _client(tmp_path, handler) as client:
+        with pytest.raises(DataAPIError, match="empty"):
+            client.smoke(2026)
 
 
 def test_smoke_fails_when_truncated(tmp_path: Path) -> None:
