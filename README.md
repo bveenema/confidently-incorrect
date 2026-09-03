@@ -94,6 +94,21 @@ are no built-in 8-team or standard-scoring fallbacks. Edit the file
 again if the league grows; the loader does not care whether
 `team_count` is 8 or 12.
 
+### FantasyPros (projections)
+
+HOF production key. Copy
+[`templates/fantasypros.json`](templates/fantasypros.json) to
+`$CI_STATE_DIR/tokens/fantasypros.json` and replace `api_key`. Never
+put the real key in the repo.
+
+`python -m data fantasypros-smoke` reads week-0 and week-1 projections,
+RB consensus rankings (`rank_std` for D-21), injuries, and news.
+Stat keys are mapped onto the scoring-engine slugs; provider
+`points*` totals are dropped. Exits 1 if FantasyPros truncates the
+pool (`tier=free`). After upgrading to HOF, mint a production key at
+https://secure.fantasypros.com/api-keys if smoke still reports
+10-player pages. Attribution string is `data.ATTRIBUTION`.
+
 | JSON field | Yahoo settings page |
 |---|---|
 | `team_count` | Number of teams |
@@ -120,7 +135,7 @@ Yahoo scoring line; omitted stats score zero later.
 | Target | What it does |
 |---|---|
 | `make test` | Unit tests |
-| `make test-integration` | Live APIs (needs `CI_STATE_DIR` with Yahoo token files) |
+| `make test-integration` | Live APIs (needs `CI_STATE_DIR` with Yahoo and/or FantasyPros token files) |
 | `make lint` | ruff + mypy |
 | `make fmt` | ruff format |
 | `make build` | `podman build`, tagged `ci:<shortsha>` |
