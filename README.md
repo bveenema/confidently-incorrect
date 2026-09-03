@@ -48,6 +48,11 @@ New-Item -ItemType Directory -Force -Path $env:CI_STATE_DIR | Out-Null
 podman compose up --build
 ```
 
+On Windows, always activate `.venv` before `python -m …`. Bare `python`
+on PATH may be PlatformIO or the Store stub, which will not see this
+package (`No module named draft`). `America/New_York` needs the
+`tzdata` package (pulled in by `pip install -e ".[dev]"`).
+
 If the Windows/WSL volume mount fails, the real runtime is a Linux VPS
 where `/srv/ci/` is a native path. Do not spend draft week debugging
 the mount.
@@ -145,12 +150,18 @@ clicks in the Yahoo room and records each pick on a local page.
 
 1. `$CI_STATE_DIR/league-settings.json` has the real `team_count`,
    `draft.rounds`, and `draft.type` of `snake`.
-2. Start the page **before the room opens**:
-   `python -m draft serve`
+2. Start the page **before the room opens** (venv + `CI_STATE_DIR`
+   required on Windows):
+   ```powershell
+   .\.venv\Scripts\Activate.ps1
+   $env:CI_STATE_DIR = "$env:USERPROFILE\.local\share\ci"
+   python -m draft serve
+   ```
    First boot builds `$CI_STATE_DIR/player-pool.json` from the live
-   providers (same tokens as `player-pool`). Later boots reuse that
-   snapshot. `--refresh` rebuilds it. `--season` defaults to the
-   current year in `America/New_York`.
+   providers (same tokens as `player-pool`) and prints progress while
+   it runs. Later boots reuse that snapshot. `--refresh` rebuilds it.
+   `--season` defaults to the current year in `America/New_York`.
+   `draft.type` must be `"snake"`.
 3. Open `http://127.0.0.1:8765/`. Enter our draft slot (1-based).
    Team count is not typed here — edit the settings file if the
    room grew; the page re-reads it.

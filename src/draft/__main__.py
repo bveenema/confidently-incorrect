@@ -52,9 +52,17 @@ def _serve(host: str, port: int, season: int, refresh: bool) -> int:
         root = state_dir()
         settings = load_league_settings(root)
         require_snake(settings)
+        print(
+            f"loading player pool for {settings.team_count} teams / "
+            f"{settings.draft.rounds} rounds...",
+            flush=True,
+        )
         pool = load_draft_pool(root, settings, season=season, refresh=refresh)
     except (DraftError, DataError) as exc:
         print(f"error: {exc}", file=sys.stderr)
+        return 1
+    except Exception as exc:
+        print(f"error: unexpected failure starting draft board: {exc}", file=sys.stderr)
         return 1
     app = DraftApp(root, pool)
     httpd = start_server(app, host=host, port=port)
@@ -62,7 +70,8 @@ def _serve(host: str, port: int, season: int, refresh: bool) -> int:
     print(
         f"ok: draft board at http://{host}:{bound}/ "
         f"({len(pool.players)} players, "
-        f"{settings.team_count} teams, {settings.draft.rounds} rounds)"
+        f"{settings.team_count} teams, {settings.draft.rounds} rounds)",
+        flush=True,
     )
     try:
         httpd.serve_forever()
