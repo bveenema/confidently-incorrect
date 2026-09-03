@@ -251,7 +251,8 @@ def test_k_incomplete_excluded_from_adp_gap_list() -> None:
     )
     kicker = next(p for p in pool.players if p.position == "K")
     assert kicker.scoring_incomplete is True
-    assert kicker.value_rank == 2
+    assert kicker.value_rank is None
+    assert kicker.adp_delta is None
     assert all(p.position != "K" for p in pool.by_adp_gap())
 
 
@@ -347,6 +348,35 @@ def test_load_player_pool_rejects_truncated_fantasypros(tmp_path: Path) -> None:
             return ()
 
     with pytest.raises(DataAPIError, match="truncated"):
+        load_player_pool(settings, _FP(), _Tank(), season=2026)
+
+
+def test_load_player_pool_rejects_empty_player_list() -> None:
+    settings = load_league_settings_file(TEMPLATE)
+
+    class _FP:
+        def projections(self, season: int, *, week: int) -> object:
+            return type(
+                "P",
+                (),
+                {
+                    "truncated": False,
+                    "players": (_fp(1, "A", "QB", "BUF", {"pass_cmp": 1}),),
+                    "advertised_count": 1,
+                },
+            )()
+
+        def consensus_rankings(self, *args: object, **kwargs: object) -> tuple:
+            return (_adp(1, "A", "QB", "BUF", rank_ecr=1),)
+
+    class _Tank:
+        def projections(self, *, week: str) -> object:
+            return _tank_set(players=(_tank("1", "X", "QB", "BUF", {}),))
+
+        def player_list(self) -> tuple:
+            return ()
+
+    with pytest.raises(DataAPIError, match="player_list"):
         load_player_pool(settings, _FP(), _Tank(), season=2026)
 
 

@@ -304,6 +304,8 @@ def load_player_pool(
     if not tank.players:
         raise DataAPIError("Tank01 season projections returned no players")
     identities = tank_client.player_list()
+    if not identities:
+        raise DataAPIError("Tank01 player_list returned no players")
     return build_player_pool(
         settings.scoring,
         projections.players,
@@ -471,7 +473,9 @@ def _score_pair(
 
 
 def _assign_ranks_and_tiers(players: Sequence[PooledPlayer]) -> list[PooledPlayer]:
-    with_fp = [p for p in players if p.fp_points is not None]
+    with_fp = [
+        p for p in players if p.fp_points is not None and not p.scoring_incomplete
+    ]
     with_fp.sort(key=lambda p: (-_as_sort_points(p.fp_points), p.name))
     value_rank = {id(p): index + 1 for index, p in enumerate(with_fp)}
 
