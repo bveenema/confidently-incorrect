@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- FantasyPros client: `$CI_STATE_DIR/tokens/fantasypros.json`, mapped
+  stat lines (not provider point totals), weekly and week-0 projections,
+  consensus `rank_std`, injuries, news, and `data.ATTRIBUTION`
+  (`python -m data fantasypros-smoke`). Smoke fails if the pool is
+  truncated or empty (D-86 / A-2).
 - Scoring engine: `data.fantasy_points` turns a raw stat line into
   league points from the ingested table (D-84 / D-48). Leftover yards
   are discarded when fractional points are off; DST bands snap
