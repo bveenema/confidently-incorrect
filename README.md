@@ -126,6 +126,18 @@ Passing/Rushing/Receiving/Kicking/DST stats map onto engine slugs.
 Kicker lines are `fg`/`fga`/`pat_*` only (no distance bands). DST has
 no return yards. Attribution is `data.TANK01_ATTRIBUTION`.
 
+### Player pool (merge, tiers, ADP)
+
+`python -m data player-pool` scores both season-long sources with the
+ingested league table, joins on Yahoo id then name+team+pos, prints
+positional tiers and ADP vs our value rank, and runs the QB-inflation
+sanity check. `--season` defaults to the current year in
+`America/New_York`. K/DST lines that lack FG distance bands or return
+yards are flagged incomplete and kept out of overall rank (A-13 / D-88).
+Needs league settings plus both provider token files. Exits 1 if
+FantasyPros truncates the pool, ADP is empty, or Tank01 returns no
+players.
+
 | JSON field | Yahoo settings page |
 |---|---|
 | `team_count` | Number of teams |
