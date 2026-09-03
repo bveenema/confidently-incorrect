@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Draft board: localhost page (`python -m draft serve`) for manual pick
+  entry, snake-turn math, and drafted vs available from the player
+  pool. No Yahoo poll. State in `$CI_STATE_DIR/draft-board.json`
+  (D-89 / issue 9).
 - Player pool: merge FantasyPros and Tank01 season-long stat lines
   under league scoring, rank, build positional tiers, and compute
   ADP delta (`python -m data player-pool`). Incomplete K/DST lines

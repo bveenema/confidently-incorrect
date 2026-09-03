@@ -138,6 +138,34 @@ Needs league settings plus both provider token files. Exits 1 if
 FantasyPros truncates the pool, ADP is empty, or Tank01 returns no
 players.
 
+### Draft board (manual picks)
+
+Yahoo draft-results polling is out for 6 Sep (D-85 / D-89). Ben
+clicks in the Yahoo room and records each pick on a local page.
+
+1. `$CI_STATE_DIR/league-settings.json` has the real `team_count`,
+   `draft.rounds`, and `draft.type` of `snake`.
+2. Start the page **before the room opens**:
+   `python -m draft serve`
+   First boot builds `$CI_STATE_DIR/player-pool.json` from the live
+   providers (same tokens as `player-pool`). Later boots reuse that
+   snapshot. `--refresh` rebuilds it. `--season` defaults to the
+   current year in `America/New_York`.
+3. Open `http://127.0.0.1:8765/`. Enter our draft slot (1-based).
+   Team count is not typed here — edit the settings file if the
+   room grew; the page re-reads it.
+4. Type a player name (or Yahoo id) and record the pick. If several
+   rows match, pick from the list — the tool will not guess. "Other
+   team picked (unnamed)" advances the clock without removing anyone
+   from available (use this if naming every pick is too slow).
+   Undo reverses the last row.
+
+The page is an unstyled form: next pick, on-the-clock slot, our next
+pick, the turn, our roster, and a truncated available list. Glanceable
+tiers are issue 10. Binds localhost only. Delete
+`draft-board.json` to start a session over. Changing `team_count` or
+`draft.rounds` after picks exist fails loud.
+
 | JSON field | Yahoo settings page |
 |---|---|
 | `team_count` | Number of teams |
