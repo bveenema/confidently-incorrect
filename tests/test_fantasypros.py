@@ -229,6 +229,27 @@ def test_truncated_flag(tmp_path: Path) -> None:
     assert result.advertised_count == 119
 
 
+def test_premium_flag_is_not_truncation(tmp_path: Path) -> None:
+    _write_key(tmp_path)
+
+    def handler(_request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200,
+            json={
+                "season": "2026",
+                "week": "0",
+                "count": "1",
+                "public_api_limited": True,
+                "tier": "premium",
+                "players": PROJ_QB["players"],
+            },
+        )
+
+    with _client(tmp_path, handler) as client:
+        result = client.projections(2026, week=0)
+    assert not result.truncated
+
+
 def test_rankings_capture_std(tmp_path: Path) -> None:
     _write_key(tmp_path)
 

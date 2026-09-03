@@ -233,8 +233,8 @@ class FantasyProsClient:
         advertised = _as_int(payload.get("count"))
         if advertised is None:
             advertised = len(players)
-        limited = bool(payload.get("public_api_limited"))
-        truncated = limited or len(players) < advertised
+        # HOF still sends public_api_limited=true; that flag is not a page cap.
+        truncated = len(players) < advertised
         parsed_week = _as_int(payload.get("week"))
         return ProjectionSet(
             season=_as_int(payload.get("season")) or season,
