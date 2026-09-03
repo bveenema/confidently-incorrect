@@ -1,4 +1,4 @@
-"""CLI: league settings and FantasyPros smoke."""
+"""CLI: league settings, FantasyPros smoke, Tank01 smoke."""
 
 from __future__ import annotations
 
@@ -10,8 +10,12 @@ from pathlib import Path
 from zoneinfo import ZoneInfo
 
 from data.errors import DataError, LeagueSettingsError
-from data.fantasypros import ATTRIBUTION, FantasyProsClient, state_dir
+from data.fantasypros import ATTRIBUTION, FantasyProsClient
+from data.fantasypros import state_dir as fantasypros_state_dir
 from data.league_settings import load_league_settings, load_league_settings_file
+from data.tank01 import ATTRIBUTION as TANK01_ATTRIBUTION
+from data.tank01 import Tank01Client
+from data.tank01 import state_dir as tank01_state_dir
 
 
 def main(argv: Sequence[str] | None = None) -> int:
@@ -36,10 +40,24 @@ def main(argv: Sequence[str] | None = None) -> int:
         default=0,
         help="NFL season year (default: current year in America/New_York)",
     )
+    tank = sub.add_parser(
+        "tank01-smoke",
+        help="live Tank01 read: projections, injuries, news, implied totals",
+    )
+    tank.add_argument(
+        "--odds-date",
+        default="",
+        help="YYYYMMDD for betting odds (default: today America/New_York)",
+    )
     args = parser.parse_args(list(argv) if argv is not None else None)
     if args.command == "validate-league-settings":
         return _validate_league_settings(args.path)
-    return _fantasypros_smoke(args.season)
+    if args.command == "fantasypros-smoke":
+        return _fantasypros_smoke(args.season)
+    if args.command == "tank01-smoke":
+        return _tank01_smoke(args.odds_date)
+    print(f"error: unknown command {args.command!r}", file=sys.stderr)
+    return 2
 
 
 def _validate_league_settings(path: Path | None) -> int:
@@ -65,7 +83,7 @@ def _validate_league_settings(path: Path | None) -> int:
 def _fantasypros_smoke(season: int) -> int:
     year = season or datetime.now(ZoneInfo("America/New_York")).year
     try:
-        with FantasyProsClient(state_dir()) as client:
+        with FantasyProsClient(fantasypros_state_dir()) as client:
             result = client.smoke(year)
     except DataError as exc:
         print(f"error: {exc}", file=sys.stderr)
@@ -79,6 +97,28 @@ def _fantasypros_smoke(season: int) -> int:
         f"news={result['news_count']}"
     )
     print(ATTRIBUTION)
+    return 0
+
+
+def _tank01_smoke(odds_date: str) -> int:
+    day = odds_date or datetime.now(ZoneInfo("America/New_York")).strftime("%Y%m%d")
+    try:
+        with Tank01Client(tank01_state_dir()) as client:
+            result = client.smoke(odds_date=day)
+    except DataError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 1
+    print(
+        f"ok: season={result['season_count']} "
+        f"week1={result['week1_count']} "
+        f"dst_week1={result['week1_dst_count']} "
+        f"sample_qb_pass_yd={result['sample_qb_pass_yd']} "
+        f"injuries={result['injuries_count']} "
+        f"news={result['news_count']} "
+        f"implied_totals={result['implied_totals_count']} "
+        f"odds_date={result['odds_date']}"
+    )
+    print(TANK01_ATTRIBUTION)
     return 0
 
 
