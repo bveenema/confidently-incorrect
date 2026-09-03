@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Windows draft-path fixes: depend on `tzdata` for `America/New_York`,
+  accept UTF-8 BOM in settings/board JSON, and print pool-load progress
+  so `python -m draft serve` does not hang silently on first boot.
 - Draft board: localhost page (`python -m draft serve`) for manual pick
   entry, snake-turn math, and drafted vs available from the player
   pool. No Yahoo poll. State in `$CI_STATE_DIR/draft-board.json`

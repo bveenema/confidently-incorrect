@@ -113,7 +113,8 @@ def load_league_settings(root: Path | None = None) -> LeagueSettings:
 
 def load_league_settings_file(path: Path) -> LeagueSettings:
     try:
-        raw = json.loads(path.read_text(encoding="utf-8"))
+        # utf-8-sig: Windows editors / PowerShell often write a BOM.
+        raw = json.loads(path.read_text(encoding="utf-8-sig"))
     except FileNotFoundError as exc:
         raise LeagueSettingsError(f"missing file: {path}. {_TEMPLATE_HINT}") from exc
     except json.JSONDecodeError as exc:

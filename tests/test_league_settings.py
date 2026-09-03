@@ -84,6 +84,15 @@ def test_invalid_json(tmp_path: Path) -> None:
         load_league_settings(tmp_path)
 
 
+def test_accepts_utf8_bom(tmp_path: Path) -> None:
+    """PowerShell Set-Content often writes a BOM; Windows editors too."""
+    path = tmp_path / "league-settings.json"
+    payload = json.dumps(_minimal(8))
+    path.write_bytes(b"\xef\xbb\xbf" + payload.encode("utf-8"))
+    settings = load_league_settings_file(path)
+    assert settings.team_count == 8
+
+
 def test_missing_required_key(tmp_path: Path) -> None:
     payload = _minimal()
     del payload["team_count"]

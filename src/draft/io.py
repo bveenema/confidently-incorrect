@@ -33,7 +33,7 @@ def load_board(root: Path, team_count: int, rounds: int) -> DraftBoard:
     if not path.exists():
         return new_board(team_count, rounds)
     try:
-        raw = json.loads(path.read_text(encoding="utf-8"))
+        raw = json.loads(path.read_text(encoding="utf-8-sig"))
     except json.JSONDecodeError as exc:
         raise DraftStateError(f"invalid JSON in {path}: {exc}") from exc
     if not isinstance(raw, dict):
@@ -54,7 +54,7 @@ def save_board(root: Path, board: DraftBoard) -> None:
 
 def load_pool_snapshot(path: Path) -> PlayerPool:
     try:
-        raw = json.loads(path.read_text(encoding="utf-8"))
+        raw = json.loads(path.read_text(encoding="utf-8-sig"))
     except FileNotFoundError as exc:
         raise DraftConfigError(f"missing player-pool snapshot: {path}") from exc
     except json.JSONDecodeError as exc:

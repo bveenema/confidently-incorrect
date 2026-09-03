@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from datetime import datetime
 from pathlib import Path
-from zoneinfo import ZoneInfo
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from data import DataError
 from data.fantasypros import FantasyProsClient
@@ -24,10 +24,25 @@ def load_draft_pool(
     season: int = 0,
     refresh: bool = False,
 ) -> PlayerPool:
-    year = season or datetime.now(ZoneInfo("America/New_York")).year
+    if season:
+        year = season
+    else:
+        try:
+            year = datetime.now(ZoneInfo("America/New_York")).year
+        except ZoneInfoNotFoundError as exc:
+            raise DraftConfigError(
+                "could not resolve America/New_York; install the tzdata package "
+                f"(pip install tzdata). Underlying error: {exc}"
+            ) from exc
     snap = pool_snapshot_path(root)
     if snap.exists() and not refresh:
+        print(f"using snapshot {snap}", flush=True)
         return load_pool_snapshot(snap)
+    print(
+        "building player pool from FantasyPros + Tank01 "
+        "(first boot; may take a minute)...",
+        flush=True,
+    )
     try:
         with (
             FantasyProsClient(fantasypros_state_dir(root)) as fp,
@@ -43,4 +58,5 @@ def load_draft_pool(
             + f": {exc}"
         ) from exc
     save_pool_snapshot(snap, pool)
+    print(f"wrote snapshot {snap} ({len(pool.players)} players)", flush=True)
     return pool
