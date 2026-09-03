@@ -187,6 +187,14 @@ permission. Initial authorization done once on a workstation with a
 browser; resulting token file mounted into the container. Refresh
 happens unattended thereafter.
 
+**Note (2 Sep 2026):** Yahoo Fantasy API access is approval-gated and
+currently in limbo (follow-up A-12). The 6 Sep draft does **not** wait
+on it — Ben supplies league settings and draft picks by hand into the
+local tool, and clicks picks in Yahoo himself. Official OAuth remains
+the preferred season path if approval lands. A logged-in session /
+site-request replay is under consideration only if the API stays
+unavailable; that is not adopted yet (D-85).
+
 ---
 
 ## 3.1 Projection data sources — RESOLVES O-6
@@ -1293,4 +1301,5 @@ Decisions made so far, with the reasoning, so future-me knows why.
 | D-82 | Fantasy 401 triggers one refresh, then a single retry | Supersedes the "raise immediately" reading of D-81. O-9 means do not exhaust retries, not skip the refresh grant. A second 401 is `YahooAuthError`; `additional_authorization_required` stays an access-program error even on HTTP 401. |
 | D-83 | Draft-path league settings load from `$CI_STATE_DIR/league-settings.json` (manual file). Missing or invalid files fail loudly; no silent defaults. Live Yahoo pull + per-run diff (D-47) return when A-12 unblocks. | Access program blocks the API before the 6 Sep draft; hardcoded league-derived values remain forbidden. |
 | D-84 | `fantasy_points` applies every ingested scoring category to a slug→amount stat line. Rate categories (`per`) discard leftover units when `fractional_points` is false (`trunc(stat/per)`); the total then rounds half-away-from-zero to an integer. Band categories (`range`) snap the stat half-away-from-zero, then award `points` once when that integer is in `[min, max]`. Missing slugs are 0 for count and rate categories; a missing band slug does not match (an explicit 0 does). Unknown keys, including any provider point total, are ignored. Kicker distances must already be binned into slugs. A-6 unresolved: signed category points apply as written — no floor, no stripped penalties. | Implements D-48 without hardcoding the table. Leftover-yard discard matches Yahoo when fractional points are off; a live box score must still confirm it (follow-up B-10). |
+| D-85 | Draft without live Yahoo API while access is in limbo; Ben transfers settings and picks by hand | A-12 may not clear before 6 Sep. Pre-rank sheet + manual board entry keep the draft tool useful. Official OAuth (D-1/D-81) stays preferred for the season. Session-replay of Yahoo site requests is a candidate only if access is denied — not adopted. |
 | D-86 | FantasyPros client (`data.FantasyProsClient`) reads `$CI_STATE_DIR/tokens/fantasypros.json`, maps provider stat names onto engine slugs, and exposes `rank_std` from consensus rankings as the D-21 input. `week=0` is season-long / ROS. Provider `points*` are dropped. `fg`/`fga` are kept unbinned for later use; distance bands are not invented. `data.ATTRIBUTION` is the public-site credit line. DST return/block yards are not in the API; week-0 DST also omits PA/yards (week-1 has them). `fumbles` maps to `fum_lost`. Yahoo player ids come from rankings/injuries, not projections. | Live free-tier + HOF check (A-2). Rank std-dev is expert rank spread, not projection variance — still the only FP number that matches D-21. Mapping is name translation, not a hardcoded scoring table. |

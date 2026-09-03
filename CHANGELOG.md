@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Record D-85: the 6 Sep draft proceeds without live Yahoo API access
+  (manual settings and picks). A-12 stays open for the season path.
+- FantasyPros smoke treats truncation as fewer rows than `count`. HOF
+  still sends `public_api_limited=true`; that flag is not a page cap
+  (A-14).
 - FantasyPros client: `$CI_STATE_DIR/tokens/fantasypros.json`, mapped
   stat lines (not provider point totals), weekly and week-0 projections,
   consensus `rank_std`, injuries, news, and `data.ATTRIBUTION`
