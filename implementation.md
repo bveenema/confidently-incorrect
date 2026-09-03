@@ -208,6 +208,13 @@ full background recompute.
 3. Connection drops → Yahoo autopick follows the pre-rank sheet
 4. No sheet entered → Yahoo's own default rankings (survivable, worse)
 
+### 2.2a Manual board is the 6 Sep path (D-89)
+
+Polling is not on the draft critical path (D-85 / A-4). The live
+tool is `python -m draft serve`: a localhost page, picks typed by
+Ben, snake math from `league-settings.json` + our slot + picks so
+far. The keyboard-entry fallback in §2.2 is that page, not a CLI.
+
 ### 2.3 Do not build for draft day
 
 No SQLite ledger, no Obsidian, no log site, no VPS, no guardrails
