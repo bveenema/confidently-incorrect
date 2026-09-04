@@ -75,6 +75,8 @@ directory.
 - Never let model output reach Yahoo unvalidated.
 - Never write real manager or team names into the ledger, notes, logs,
   prompts, or MQTT payloads.
+- Never touch the operator's real `$CI_STATE_DIR` / `/srv/ci/` unless
+  the user names the file and asks (D-90). Tests use a temp dir.
 - Timezone is `America/New_York`.
 - After week 1: no deploys Thu 17:00–Mon 23:59 ET; persona prompts frozen.
 - Cursor has no worktree isolation — serialize file-modifying coder tasks.

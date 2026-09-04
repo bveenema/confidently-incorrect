@@ -18,6 +18,10 @@ Never:
 - Let real names enter `kb.db`, `notes/`, logs, prompts, or MQTT
 - Include `notes/managers/` in a site build
 - Commit secrets
+- Touch `$CI_STATE_DIR` or `/srv/ci/` (read secrets into chat, or
+  create/overwrite/delete/repair files) unless the user explicitly
+  names the file and asks — tests use a temp dir only (`.ai/rules.md`
+  §3.1 / §4)
 - Swallow an exception on a write path
 - Ping the dead-man switch on process start
 - Touch `/srv/ci/` with a git command

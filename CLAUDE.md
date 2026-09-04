@@ -67,8 +67,12 @@ Quality gates for `/ship`: `make lint` and `make test` must pass.
   are deterministic code between the GM decision and execution.
 - **Never write real manager or team names** into `kb.db`, `notes/`,
   logs, or any model prompt. Pseudonymization happens at ingest.
-- **Runtime state lives at `/srv/ci/`**, outside the git working
-  directory. No git command may reach it.
+- **Runtime state** is `$CI_STATE_DIR` on the workstation and
+  `/srv/ci/` on the VPS — the same store, outside the git tree. No git
+  command may reach it. Agents must not read secrets from it into the
+  session, and must not create, overwrite, delete, or repair files
+  there unless the user explicitly names the file and asks. Unit tests
+  use a temp dir only. See `.ai/rules.md` §3.1 / §4.
 - **Timezone is `America/New_York`** everywhere.
 - **Deploys are manual** via `deploy.sh`. `/ship` merges to main; it
   does not deploy. Do not wire deployment into the ship phase.

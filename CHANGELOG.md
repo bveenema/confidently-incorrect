@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+- Restructure the draft-week plan: workstation `python -m draft serve`
+  remains the operational floor, but draft council logging moves
+  pre-draft (`kb.db` schema + draft `considered_options` capture).
+  Added D-91..D-95 and updated implementation/follow-up docs.
+  Relabeled #15 to `milestone:draft`, updated #10/#11/#12/#15, and
+  filed #49 (notes append) and #50 (slot→pseudonym).
+- Draft prompts now include `action: "draft"` in specialist brief
+  recommendations so draft outputs do not invent an out-of-schema action.
+- Record D-90: agents must not touch the operator's real `$CI_STATE_DIR`
+  / `/srv/ci/` (no secret reads into the session; no create/overwrite/
+  delete/repair unless the user names the file and asks). Binding text
+  in `.ai/rules.md` §3.1 / §4.
 - Windows draft-path fixes: depend on `tzdata` for `America/New_York`,
   accept UTF-8 BOM in settings/board JSON, and print pool-load progress
   so `python -m draft serve` does not hang silently on first boot.

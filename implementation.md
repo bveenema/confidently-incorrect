@@ -215,14 +215,42 @@ tool is `python -m draft serve`: a localhost page, picks typed by
 Ben, snake math from `league-settings.json` + our slot + picks so
 far. The keyboard-entry fallback in §2.2 is that page, not a CLI.
 
-### 2.3 Do not build for draft day
+### 2.3 Pre-draft build queue
 
-No SQLite ledger, no Obsidian, no log site, no VPS, no guardrails
-framework, no trade logic, no Muskett, no strategy UI. The draft
-assistant runs on the workstation and most of it gets thrown away.
+The floor remains the workstation board + pre-rank sheet, but draft-night
+council reasoning is unrecoverable if skipped, so a narrow ledger slice
+moves before Sunday.
 
-Muskett is idle — nothing to negotiate during a draft. Lasso writes an
-opening note at 20:00 and a closing one at the end.
+**Must before Sunday (one PR per session):**
+
+1. Session 0 — docs + issue queue rewrite only (no app code)
+2. Session 1 — `kb.db` schema (issue 15, relabeled draft)
+3. Session 2 — council orchestrator writes `runs` + `briefs` with cost
+   (issue 11)
+4. Session 3 — draft council integration with `--state-dir` rehearsal
+   path, `packet_hash`, latest-only recompute, and `considered_options`
+   (issue 12)
+5. Session 4 — pre-rank export (issue 13), then manual Yahoo entry
+
+**Should only if Must is merged by Friday evening:**
+
+6. Notes append path + Lasso draft open/close notes (volume-capped:
+   max one note per our pick) — issue 49
+7. Draft display council panel rendered from `kb.db` by `packet_hash`
+   — issue 10
+8. Slot-to-pseudonym mapping if notes mention other managers — issue 50
+
+**Cut first if schedule slips:**
+
+- VPS draft serving and any operator flow requiring ad-hoc SSH steps.
+  `deploy.sh` remains the only accepted deploy path.
+- Standalone backup automation scripts (operator can run a documented
+  post-draft copy + name grep).
+- Pre-draft council debate on `strategy.json` and the autopick sheet.
+  Keep as a documented follow-up, not a stealth scope add.
+
+Muskett is still idle on draft picks. Lasso remains cosmetic
+(opening/closing notes only).
 
 ---
 
@@ -233,14 +261,17 @@ Season engine, no hard deadline but week 1 kicks off ~10 September.
 1. **Never miss a lock** — the lineup path end to end, guardrails
    included, before anything else. This is the operational floor from
    architecture §1.
-2. `kb.db` schema and the `considered_options` snapshot. Attribution
-   data is unrecoverable if this lands late (architecture §7.2).
-3. Waiver path — **rewritten for rolling priority, not FAAB** (§4.1)
-4. Trade path, including the 2-day league-vote review window
-5. Log site generation and Cloudflare Pages push
-6. Strategy UI and trade monitor
-7. `notes/` and the Obsidian layer
-8. UNS/MQTT — broker on the VPS, engine publisher, console current-state panels. Spec in `uns.md`. Three seeded `milestone:season` issues; after week 1 this falls under the Tuesday/Wednesday change window.
+2. Waiver path — **rewritten for rolling priority, not FAAB** (§4.1)
+3. Trade path, including the 2-day league-vote review window
+4. Log site generation and Cloudflare Pages push
+5. Strategy UI and trade monitor
+6. UNS/MQTT — broker on the VPS, engine publisher, console current-state
+   panels. Spec in `uns.md`. Three seeded `milestone:season` issues;
+   after week 1 this falls under the Tuesday/Wednesday change window.
+
+Draft-path pre-work now scheduled before week 1: `kb.db` schema + draft
+`considered_options` capture, optional notes append path, and rehearsal
+`--state-dir` isolation.
 
 ---
 
