@@ -42,9 +42,11 @@ def connect(root: Path) -> sqlite3.Connection:
 
 
 def migrate(root: Path) -> Path:
-    """Create {root}/kb.db and apply schema.sql. Idempotent.
+    """Create {root}/kb.db and apply schema.sql. Idempotent for v1.
 
-    mkdir only the given root. Never resolves CI_STATE_DIR.
+    mkdir only the given root. Never resolves CI_STATE_DIR. Does not
+    ALTER an existing database; a later schema bump needs a new
+    migration path.
     """
     try:
         root.mkdir(parents=True, exist_ok=True)

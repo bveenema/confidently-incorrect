@@ -50,6 +50,7 @@ def test_migrate_creates_tables_and_season_id_columns(tmp_path: Path) -> None:
         assert "publish_approved" in _columns(conn, "runs")
         assert "publish_denied_reason" in _columns(conn, "runs")
         assert "manual_intervention" in _columns(conn, "runs")
+        assert "absent_personas" in _columns(conn, "runs")
         version = conn.execute("PRAGMA user_version").fetchone()[0]
         assert version == 1
 
@@ -144,6 +145,35 @@ def test_cli_migrate_state_dir(
     assert (tmp_path / "kb.db").is_file()
 
 
+def test_foreign_keys_reject_orphans(tmp_path: Path) -> None:
+    migrate(tmp_path)
+    with connect(tmp_path) as conn:
+        with pytest.raises(sqlite3.IntegrityError):
+            conn.execute(
+                """
+                INSERT INTO runs (season_id, ts, decision_type)
+                VALUES ('2026', '2026-09-04T12:00:00-04:00', 'draft')
+                """
+            )
+        conn.execute("INSERT INTO seasons (season_id) VALUES ('2026')")
+        conn.execute(
+            """
+            INSERT INTO runs (season_id, ts, decision_type)
+            VALUES ('2026', '2026-09-04T12:00:00-04:00', 'draft')
+            """
+        )
+        run_id = conn.execute("SELECT id FROM runs").fetchone()[0]
+        conn.commit()
+        with pytest.raises(sqlite3.IntegrityError):
+            conn.execute(
+                """
+                INSERT INTO briefs (run_id, persona, reasoning)
+                VALUES (?, 'belichuk', 'ok')
+                """,
+                (run_id + 99,),
+            )
+
+
 def test_cli_migrate_from_env(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -152,7 +182,10 @@ def test_cli_migrate_from_env(
     monkeypatch.setenv("CI_STATE_DIR", str(tmp_path))
     assert main(["migrate"]) == 0
     out = capsys.readouterr().out
-    assert str(tmp_path / "kb.db") in out.replace("\\", "/") or "kb.db" in out
+    written = tmp_path / "kb.db"
+    assert written.is_file()
+    assert out.startswith("ok:")
+    assert Path(out.split("ok:", 1)[1].strip()) == written
 
 
 def test_unset_ci_state_dir(monkeypatch: pytest.MonkeyPatch) -> None:

@@ -44,7 +44,7 @@ CREATE TABLE IF NOT EXISTS briefs (
 CREATE TABLE IF NOT EXISTS considered_options (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     run_id INTEGER NOT NULL REFERENCES runs (id),
-    persona TEXT,
+    persona TEXT NOT NULL,
     player_key TEXT NOT NULL,
     contemplated_action TEXT NOT NULL,
     projection_primary REAL,
