@@ -68,9 +68,18 @@ Once week 1 begins, code changes are confounds for the attribution data
   the box is config drift: it is not in the repo, it will not survive
   the next deploy, and nobody will remember it exists. Change it in a
   PR and deploy.
-- **Never touch `/srv/ci/`** — `strategy.json`, `kb.db`, `notes/`, and
-  the token file. That directory is runtime state, deliberately outside
-  the git working directory. No git command should ever reach it.
+- **Never touch runtime state** — `$CI_STATE_DIR` on the workstation
+  (e.g. `%USERPROFILE%\.local\share\ci`) and `/srv/ci/` on the VPS are
+  the same store: `league-settings.json`, `strategy.json`, `kb.db`,
+  `notes/`, tokens, `draft-board.json`, `player-pool.json`, and
+  anything else under that root. Deliberately outside the git working
+  directory. No git command may reach it. Agents must not read secrets
+  from it into chat or logs, and must not create, overwrite, delete, or
+  "repair" files there unless the user explicitly names the file and
+  asks. Coding and unit tests use a temp dir (`tmp_path` /
+  monkeypatched `CI_STATE_DIR`), never the real state dir. Pointing at
+  `templates/` and documenting commands is enough; do not "help" by
+  rewriting the operator's live files.
 - **Rollback retags a previous image; it does not rebuild.** The last
   five SHA-tagged images are kept for this reason.
 - **Secrets are set on the box once, manually.** Never in the repo,
@@ -107,6 +116,11 @@ These are not preferences.
 - **Never commit secrets.** Yahoo tokens, OpenRouter keys, and the
   pseudonym mapping are podman secrets or volume-mounted files. Not env
   files in the image, not in the repo, not in test fixtures.
+- **Never touch the operator's real `$CI_STATE_DIR` / `/srv/ci/`.**
+  Same store on workstation and VPS. No reads of secrets into the
+  session, no creates/overwrites/deletes/"repairs" unless the user
+  explicitly names the file and asks. Unit tests use a temp dir only.
+  See §3.1.
 - **Never swallow an exception on a write path.** A run that fails must
   exit non-zero and write a failed-run row. Silent success is the
   failure mode this system is most vulnerable to.
@@ -168,4 +182,6 @@ These are not preferences.
       be recorded?
 - [ ] Are any league-derived values hardcoded?
 - [ ] Could any real name reach the ledger, notes, or a prompt?
+- [ ] Did this write to the real `$CI_STATE_DIR` / `/srv/ci/` without
+      an explicit ask that named the file?
 - [ ] Was it actually run, or does it just look correct?

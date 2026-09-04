@@ -19,7 +19,7 @@ Every specialist returns exactly this object. No prose outside it.
   "decision_type": "lineup | waiver | trade | draft",
   "recommendations": [
     {
-      "action": "start | bench | add | drop | claim | accept | reject | counter",
+      "action": "start | bench | add | drop | claim | accept | reject | counter | draft",
       "player_key": "461.p.12345",
       "player_name": "Full Name",
       "slot": "RB | WR | FLEX | null",
@@ -42,6 +42,8 @@ Field notes:
 - `voice_line` — the only field where the persona performs. Cosmetic.
 - `dissent` — nullable. Populated when the persona wants to flag that
   the consensus is wrong.
+- `draft` action — for draft runs, use `action: "draft"` and rank by
+  `priority` (1 is best available for the current pick).
 - `player_key` — must be validated against the live roster / free agent
   pool before execution. Reject the whole brief on a bad key rather than
   retrying.
@@ -412,8 +414,9 @@ TRADE RECEIVED:
   if action is counter/propose: Muskett drafts trade_note
 
 DRAFT:
-  all specialists, per pick, with a shortened packet
-  Maddox decides
+  parallel: Belichuk, Brand, Taco — per pick, shortened packet
+  then:     Maddox
+  Muskett sits out (no trades during a live draft)
 ```
 
 Rebuttal round: allow exactly one when two specialists directly
