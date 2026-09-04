@@ -177,6 +177,22 @@ tiers are issue 10. Binds localhost only. Delete
 `draft-board.json` to start a session over. Changing `team_count` or
 `draft.rounds` after picks exist fails loud.
 
+### Decision ledger (kb.db)
+
+`kb.db` is the structured decision ledger on the state volume (D-74).
+Create it with:
+
+```powershell
+python -m db migrate
+```
+
+`--state-dir` overrides `$CI_STATE_DIR`. Tests and rehearsal must pass
+an explicit directory; do not point a mock run at the live root
+(D-90 / D-92). The migrator applies `CREATE TABLE IF NOT EXISTS` and
+does not ALTER an existing file. Council writes (which must insert a
+`seasons` row before any `runs` / `deploys` / `config_changes` row)
+land in a later issue.
+
 | JSON field | Yahoo settings page |
 |---|---|
 | `team_count` | Number of teams |

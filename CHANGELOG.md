@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- kb.db ledger schema and `python -m db migrate`: ten tables from
+  architecture §7, `season_id` on runs/deploys/config_changes (D-74),
+  WAL connections, failed-run `failure_mode` (D-63). Runtime file is
+  `$CI_STATE_DIR/kb.db`. Library callers pass an explicit state dir
+  (D-90).
 - Restructure the draft-week plan: workstation `python -m draft serve`
   remains the operational floor, but draft council logging moves
   pre-draft (`kb.db` schema + draft `considered_options` capture).
