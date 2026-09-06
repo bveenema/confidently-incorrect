@@ -12,6 +12,7 @@ from urllib.parse import quote
 from data.pool import PooledPlayer
 from draft.board import DraftBoard, RecordedPick
 from draft.match import player_key
+from draft.recompute import DraftSlate
 
 
 def render_page(
@@ -22,21 +23,26 @@ def render_page(
     message: str = "",
     candidates: tuple[PooledPlayer, ...] = (),
     query: str = "",
+    rehearsal: bool = False,
+    slate: DraftSlate | None = None,
 ) -> str:
     if board.our_slot is None:
-        return _setup(team_count, message)
+        return _setup(team_count, message, rehearsal=rehearsal)
     return _board(
         board,
         available=available,
         message=message,
         candidates=candidates,
         query=query,
+        rehearsal=rehearsal,
+        slate=slate,
     )
 
 
-def _setup(team_count: int, message: str) -> str:
+def _setup(team_count: int, message: str, *, rehearsal: bool = False) -> str:
     return _wrap(
         "<h1>Draft board</h1>"
+        f"{_rehearsal_banner(rehearsal)}"
         f"{_flash(message)}"
         f"<p>Team count: {team_count} "
         "(from $CI_STATE_DIR/league-settings.json). "
@@ -57,6 +63,8 @@ def _board(
     message: str,
     candidates: tuple[PooledPlayer, ...],
     query: str,
+    rehearsal: bool = False,
+    slate: DraftSlate | None = None,
 ) -> str:
     clock = board.on_the_clock()
     ours = board.next_ours()
@@ -67,6 +75,7 @@ def _board(
     upcoming = "—" if board.complete else str(board.upcoming)
     parts = [
         "<h1>Draft board</h1>",
+        _rehearsal_banner(rehearsal),
         _flash(message),
         f"<p><strong>Next pick: {upcoming}</strong> · "
         f"On the clock: slot {clock_txt} · "
@@ -110,6 +119,7 @@ def _board(
             '<p><button type="submit">Undo last pick</button></p>'
             "</form>"
         )
+    parts.append(_slate_section(slate))
     parts.append(_picks_section(board.picks))
     parts.append(_roster_section(board.our_roster()))
     parts.append(_available_section(available))
@@ -169,6 +179,35 @@ def _player_label(player: PooledPlayer) -> str:
     if player.value_rank is not None:
         extra = f" #{player.value_rank}"
     return f"{player.name} {player.position} {player.team}{extra}"
+
+
+def _slate_section(slate: DraftSlate | None) -> str:
+    if slate is None or not slate.items:
+        return (
+            "<h2>Council slate</h2>"
+            "<p>No ranked list yet — enter our slot, then wait one recompute.</p>"
+        )
+    source = "tier fallback" if slate.source == "fallback" else "council"
+    fail = f" · {escape(slate.failure_mode)}" if slate.failure_mode else ""
+    rows = [f"<h2>Council slate</h2><p>{escape(source)}{fail}</p><ol>"]
+    for item in slate.items:
+        rows.append(
+            "<li>"
+            f"{escape(item.name)} {escape(item.position)} {escape(item.team)} "
+            f"<code>{escape(item.player_key)}</code>"
+            "</li>"
+        )
+    rows.append("</ol>")
+    return "".join(rows)
+
+
+def _rehearsal_banner(rehearsal: bool) -> str:
+    if not rehearsal:
+        return ""
+    return (
+        "<p><strong>REHEARSAL</strong> — writes go to this --state-dir, "
+        "not the live runtime root.</p>"
+    )
 
 
 def _flash(message: str) -> str:

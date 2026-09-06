@@ -13,6 +13,7 @@ from draft.__main__ import main
 from draft.errors import DraftConfigError, DraftStateError
 from draft.io import save_pool_snapshot
 from draft.pool_load import load_draft_pool
+from draft.recompute import NullRecompute
 from draft.server import DraftApp, handle_request, require_snake, start_server
 
 
@@ -52,7 +53,7 @@ def _app(tmp_path: Path, players: tuple[PooledPlayer, ...]) -> DraftApp:
         players=players,
         qb_inflation=QbInflationCheck(True, None, (), "test"),
     )
-    return DraftApp(tmp_path, pool)
+    return DraftApp(tmp_path, pool, recompute=NullRecompute())
 
 
 def test_require_snake(tmp_path: Path) -> None:

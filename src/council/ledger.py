@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 from collections.abc import Sequence
+from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
@@ -149,6 +150,63 @@ def insert_brief_row(
         raise
     except Exception as exc:
         raise CouncilError(f"failed to insert brief for {persona}: {exc}") from exc
+
+
+@dataclass(frozen=True)
+class ConsideredOption:
+    persona: str
+    player_key: str
+    contemplated_action: str
+    projection_primary: float | None = None
+    projection_secondary: float | None = None
+    projection_delta: float | None = None
+    std_dev: float | None = None
+    injury_status: str | None = None
+    chosen: int = 0
+
+
+def insert_considered_options(
+    root: Path, run_id: int, rows: Sequence[ConsideredOption]
+) -> None:
+    """Write the snapshot with chosen=0. Callers must not pass chosen=1."""
+    if not rows:
+        raise CouncilError(f"considered_options snapshot for run {run_id} is empty")
+    if any(row.chosen != 0 for row in rows):
+        raise CouncilError(
+            "considered_options snapshot must be written before any chosen flag"
+        )
+    try:
+        with connect(root) as conn:
+            conn.executemany(
+                """
+                INSERT INTO considered_options (
+                    run_id, persona, player_key, contemplated_action,
+                    projection_primary, projection_secondary, projection_delta,
+                    std_dev, injury_status, chosen
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
+                """,
+                [
+                    (
+                        run_id,
+                        row.persona,
+                        row.player_key,
+                        row.contemplated_action,
+                        row.projection_primary,
+                        row.projection_secondary,
+                        row.projection_delta,
+                        row.std_dev,
+                        row.injury_status,
+                    )
+                    for row in rows
+                ],
+            )
+            conn.commit()
+    except DbError:
+        raise
+    except Exception as exc:
+        raise CouncilError(
+            f"failed to insert considered_options for run {run_id}: {exc}"
+        ) from exc
 
 
 def insert_decision(root: Path, run_id: int, decision: GmDecision) -> None:

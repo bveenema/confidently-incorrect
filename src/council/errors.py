@@ -19,3 +19,14 @@ class CouncilValidationError(CouncilError):
 
 class CouncilRunError(CouncilError):
     """A council run started and then failed (usually a missing GM)."""
+
+    def __init__(
+        self,
+        message: str,
+        *,
+        run_id: int | None = None,
+        failure_mode: str | None = None,
+    ) -> None:
+        super().__init__(message)
+        self.run_id = run_id
+        self.failure_mode = failure_mode

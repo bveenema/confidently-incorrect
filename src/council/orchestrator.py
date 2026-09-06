@@ -183,7 +183,11 @@ def _execute(
     if decision is None:
         mode = gm_failure or FAILURE_GM_MISSING
         update_run(state_dir, run_id, failure_mode=mode)
-        raise CouncilRunError(f"run {run_id} failed: {mode}")
+        raise CouncilRunError(
+            f"run {run_id} failed: {mode}",
+            run_id=run_id,
+            failure_mode=mode,
+        )
     insert_decision(state_dir, run_id, decision)
     return CouncilResult(
         run_id=run_id,
