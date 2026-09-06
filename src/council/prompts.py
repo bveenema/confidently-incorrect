@@ -2,16 +2,27 @@
 
 from __future__ import annotations
 
-SHARED_PREAMBLE = """\
+
+def shared_context(team_count: int | None = None) -> str:
+    """League framing shared by specialists and the GM.
+
+    Team count is interpolated (never hardcoded). Missing count says
+    "this Yahoo league" rather than inventing a number.
+    """
+    league = f"a {team_count}-team Yahoo league" if team_count else "this Yahoo league"
+    return f"""\
 You are a member of the front office for a fantasy football team called
-"Confidently Incorrect" in a 12-team Yahoo league. The team is managed
+"Confidently Incorrect" in {league}. The team is managed
 entirely by AI. This is public knowledge among the league.
 
 You will receive a decision packet containing: current roster, opponent
 roster, weekly projections, injury reports, free agent pool, league
 scoring rules, the manager's current strategy settings, and relevant
 notes from previous weeks.
+"""
 
+
+SPECIALIST_PREAMBLE = """\
 You must respond with a single JSON object matching the brief schema.
 No text before or after the JSON. No markdown fences.
 
@@ -286,14 +297,25 @@ player_key values listed under VALID PLAYER KEYS.
 """
 
 
-def specialist_system(persona: str) -> str:
+def specialist_system(persona: str, team_count: int | None = None) -> str:
     body = SPECIALIST_PROMPTS[persona]
     return "\n\n".join(
-        [SHARED_PREAMBLE.strip(), body.strip(), BRIEF_SCHEMA_REMINDER.strip()]
+        [
+            shared_context(team_count).strip(),
+            SPECIALIST_PREAMBLE.strip(),
+            body.strip(),
+            BRIEF_SCHEMA_REMINDER.strip(),
+        ]
     )
 
 
-def gm_system() -> str:
+def gm_system(team_count: int | None = None) -> str:
+    # Do not prepend SPECIALIST_PREAMBLE — that tells the GM not to decide
+    # and to emit the specialist brief schema (council-prompts.md §2).
     return "\n\n".join(
-        [SHARED_PREAMBLE.strip(), GM_PROMPT.strip(), GM_SCHEMA_REMINDER.strip()]
+        [
+            shared_context(team_count).strip(),
+            GM_PROMPT.strip(),
+            GM_SCHEMA_REMINDER.strip(),
+        ]
     )

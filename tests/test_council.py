@@ -19,6 +19,7 @@ from council import (
 from council.__main__ import main
 from council.credentials import DEFAULT_MODELS, credentials_path
 from council.paths import state_dir
+from council.prompts import gm_system, specialist_system
 from council.schema import canonicalize_player_key, parse_json_object
 from db import connect, migrate
 
@@ -213,8 +214,12 @@ def test_missing_specialist_does_not_block(tmp_path: Path) -> None:
     with connect(tmp_path) as conn:
         absent = conn.execute("SELECT absent_personas FROM runs").fetchone()[0]
         personas = {row[0] for row in conn.execute("SELECT persona FROM briefs")}
+        reason = conn.execute(
+            "SELECT reasoning FROM briefs WHERE persona = 'taco'"
+        ).fetchone()[0]
     assert absent == "taco"
-    assert "taco" not in personas
+    assert "taco" in personas
+    assert reason and "OpenRouter HTTP 503" in reason
 
 
 def test_malformed_brief_rejected_not_retried(tmp_path: Path) -> None:
@@ -260,7 +265,7 @@ def test_missing_gm_fails_and_writes_failure_mode(tmp_path: Path) -> None:
         count = conn.execute("SELECT COUNT(*) FROM briefs").fetchone()[0]
         decisions = conn.execute("SELECT COUNT(*) FROM decisions").fetchone()[0]
     assert mode == "gm_missing"
-    assert count == 3
+    assert count == 4
     assert decisions == 0
 
 
@@ -349,6 +354,17 @@ def test_validate_gm_unknown_key() -> None:
     raw = _gm(["yahoo:999"] + POOL[:4])
     with pytest.raises(CouncilValidationError, match="live pool"):
         validate_gm(raw, decision_type="draft", pool=set(POOL))
+
+
+def test_gm_system_is_not_the_specialist_preamble() -> None:
+    gm = gm_system(team_count=8)
+    specialist = specialist_system("brand", team_count=8)
+    assert "You advise. You do not decide." not in gm
+    assert "You make the final call" in gm
+    assert "8-team" in gm
+    assert "You advise. You do not decide." in specialist
+    assert "12-team" not in gm
+    assert "12-team" not in specialist
 
 
 def test_migrate_still_idempotent(tmp_path: Path) -> None:

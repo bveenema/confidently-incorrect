@@ -99,6 +99,11 @@ def run_council(
             specialists=specialists,
             client=http,
         )
+    except CouncilRunError:
+        raise
+    except Exception:
+        update_run(state_dir, run_id, failure_mode="internal_error")
+        raise
     finally:
         if owned_client:
             http.close()
@@ -114,6 +119,7 @@ def _execute(
     specialists: tuple[str, ...],
     client: OpenRouterClient,
 ) -> CouncilResult:
+    team_count = _team_count(packet)
     user = _specialist_user(packet, pool, decision_type)
     valid: dict[str, Brief] = {}
     rejected: list[str] = []
@@ -122,7 +128,13 @@ def _execute(
     with ThreadPoolExecutor(max_workers=len(specialists)) as workers:
         futures = {
             workers.submit(
-                _specialist_call, client, persona, decision_type, user, pool
+                _specialist_call,
+                client,
+                persona,
+                decision_type,
+                user,
+                pool,
+                team_count,
             ): persona
             for persona in specialists
         }
@@ -132,7 +144,7 @@ def _execute(
                 brief, rejection, completion = future.result()
             except Exception as exc:
                 raise CouncilError(f"specialist {persona} crashed: {exc}") from exc
-            if brief is not None or completion is not None:
+            if brief is not None or completion is not None or rejection:
                 insert_brief_row(
                     state_dir,
                     run_id,
@@ -155,9 +167,9 @@ def _execute(
 
     gm_user = _gm_user(packet, pool, decision_type, valid)
     decision, gm_brief, gm_rejection, gm_completion, gm_failure = _gm_call(
-        client, decision_type, gm_user, pool
+        client, decision_type, gm_user, pool, team_count
     )
-    if gm_brief is not None or gm_completion is not None:
+    if gm_brief is not None or gm_completion is not None or gm_rejection:
         insert_brief_row(
             state_dir,
             run_id,
@@ -190,15 +202,16 @@ def _specialist_call(
     decision_type: str,
     user: str,
     pool: set[str],
+    team_count: int | None,
 ) -> tuple[Brief | None, str | None, Completion | None]:
     try:
         completion = client.complete(
             model=model_for(persona, client.credentials),
-            system=specialist_system(persona),
+            system=specialist_system(persona, team_count),
             user=user,
         )
-    except (CouncilAPIError, CouncilError):
-        return None, None, None
+    except (CouncilAPIError, CouncilError) as exc:
+        return None, str(exc), None
     try:
         raw = parse_json_object(completion.content)
         brief = validate_brief(
@@ -217,15 +230,16 @@ def _gm_call(
     decision_type: str,
     user: str,
     pool: set[str],
+    team_count: int | None,
 ) -> tuple[GmDecision | None, Brief | None, str | None, Completion | None, str | None]:
     try:
         completion = client.complete(
             model=model_for(GM, client.credentials),
-            system=gm_system(),
+            system=gm_system(team_count),
             user=user,
         )
-    except (CouncilAPIError, CouncilError):
-        return None, None, None, None, FAILURE_GM_MISSING
+    except (CouncilAPIError, CouncilError) as exc:
+        return None, None, str(exc), None, FAILURE_GM_MISSING
     try:
         raw = parse_json_object(completion.content)
         decision = validate_gm(raw, decision_type=decision_type, pool=pool)
@@ -250,6 +264,15 @@ def _gm_call(
         voice_line=decision.voice_line,
     )
     return decision, gm_brief, None, completion, None
+
+
+def _team_count(packet: Mapping[str, Any]) -> int | None:
+    raw = packet.get("team_count")
+    if raw is None and isinstance(packet.get("league"), dict):
+        raw = packet["league"].get("team_count")
+    if isinstance(raw, bool) or not isinstance(raw, int) or raw < 1:
+        return None
+    return raw
 
 
 def _specialist_user(packet: dict[str, Any], pool: set[str], decision_type: str) -> str:
