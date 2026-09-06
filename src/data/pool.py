@@ -6,13 +6,15 @@ signal. Provider point totals are never consulted (D-48 / D-84).
 
 from __future__ import annotations
 
+import json
 import math
 import re
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, replace
+from pathlib import Path
 from typing import Any
 
-from data.errors import DataAPIError
+from data.errors import DataAPIError, DataConfigError
 from data.fantasypros import ConsensusRank
 from data.fantasypros import PlayerProjection as FantasyProsProjection
 from data.league_settings import LeagueSettings, Scoring
@@ -24,6 +26,8 @@ from data.tank01 import ProjectionSet as Tank01ProjectionSet
 # Diagnostic only — not a league setting. Top QBs should clear this gap
 # when completions/pass TDs inflate value versus published ADP.
 _QB_GAP_FLOOR = 8.0
+POOL_SNAPSHOT_SCHEMA = 1
+POOL_SNAPSHOT_FILENAME = "player-pool.json"
 _SUFFIXES = frozenset({"jr", "sr", "ii", "iii", "iv", "v"})
 # NFL abbreviation drift, not league values.
 _TEAM_CANON = {
@@ -314,6 +318,109 @@ def load_player_pool(
         identities,
         season=season,
     )
+
+
+def pool_snapshot_path(root: Path) -> Path:
+    return root / POOL_SNAPSHOT_FILENAME
+
+
+def load_pool_snapshot(path: Path) -> PlayerPool:
+    """Load a player-pool.json snapshot written by draft serve (schema 1)."""
+    try:
+        raw = json.loads(path.read_text(encoding="utf-8-sig"))
+    except FileNotFoundError as exc:
+        raise DataConfigError(f"missing player-pool snapshot: {path}") from exc
+    except json.JSONDecodeError as exc:
+        raise DataConfigError(f"invalid JSON in {path}: {exc}") from exc
+    if not isinstance(raw, dict):
+        raise DataConfigError(f"{path} must contain a JSON object")
+    version = raw.get("schema_version")
+    if version != POOL_SNAPSHOT_SCHEMA:
+        raise DataConfigError(
+            f"{path} has unsupported schema_version {version!r} "
+            f"(expected {POOL_SNAPSHOT_SCHEMA})"
+        )
+    season = raw.get("season")
+    adp = raw.get("adp_scoring")
+    rows = raw.get("players")
+    if not isinstance(season, int) or isinstance(season, bool):
+        raise DataConfigError(f"{path}: season must be an integer")
+    if not isinstance(adp, str) or not adp.strip():
+        raise DataConfigError(f"{path}: adp_scoring must be a non-empty string")
+    if not isinstance(rows, list) or not rows:
+        raise DataConfigError(f"{path}: players must be a non-empty array")
+    players = tuple(
+        _player_from_snapshot(item, path, index) for index, item in enumerate(rows)
+    )
+    return PlayerPool(
+        season=season,
+        adp_scoring=adp,
+        players=players,
+        qb_inflation=QbInflationCheck(
+            ok=True,
+            median_gap=None,
+            top_qbs=(),
+            detail="loaded from snapshot",
+        ),
+    )
+
+
+def _player_from_snapshot(item: Any, path: Path, index: int) -> PooledPlayer:
+    prefix = f"{path}: players[{index}]"
+    if not isinstance(item, dict):
+        raise DataConfigError(f"{prefix} must be an object")
+    name = item.get("name")
+    position = item.get("position")
+    team = item.get("team")
+    if not isinstance(name, str) or not name.strip():
+        raise DataConfigError(f"{prefix}.name must be a non-empty string")
+    if not isinstance(position, str) or not position.strip():
+        raise DataConfigError(f"{prefix}.position must be a non-empty string")
+    if not isinstance(team, str) or not team.strip():
+        raise DataConfigError(f"{prefix}.team must be a non-empty string")
+    return PooledPlayer(
+        name=name,
+        position=position,
+        team=team,
+        yahoo_id=_opt_str(item.get("yahoo_id")),
+        fpid=_opt_int(item.get("fpid")),
+        tank_id=_opt_str(item.get("tank_id")),
+        fp_points=_opt_num(item.get("fp_points")),
+        tank_points=_opt_num(item.get("tank_points")),
+        source_delta=_opt_num(item.get("source_delta")),
+        value_rank=_opt_int(item.get("value_rank")),
+        pos_rank=_opt_int(item.get("pos_rank")),
+        adp=_opt_num(item.get("adp")),
+        adp_delta=_opt_num(item.get("adp_delta")),
+        tier=_opt_int(item.get("tier")),
+        tier_break_after=bool(item.get("tier_break_after", False)),
+        scoring_incomplete=bool(item.get("scoring_incomplete", False)),
+        join=str(item.get("join") or "snapshot"),
+    )
+
+
+def _opt_str(value: Any) -> str | None:
+    if value is None:
+        return None
+    if isinstance(value, str):
+        return value
+    return str(value)
+
+
+def _opt_int(value: Any) -> int | None:
+    if value is None or isinstance(value, bool):
+        return None
+    if isinstance(value, int):
+        return value
+    return None
+
+
+def _opt_num(value: Any) -> int | float | None:
+    if value is None or isinstance(value, bool):
+        return None
+    if isinstance(value, (int, float)):
+        return value
+    return None
 
 
 def qb_inflation_check(players: Sequence[PooledPlayer]) -> QbInflationCheck:

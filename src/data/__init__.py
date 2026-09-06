@@ -9,6 +9,7 @@ from data.pool import (
     QbInflationCheck,
     build_player_pool,
     load_player_pool,
+    load_pool_snapshot,
 )
 from data.scoring import fantasy_points
 from data.tank01 import ATTRIBUTION as TANK01_ATTRIBUTION
@@ -31,4 +32,5 @@ __all__ = [
     "fantasy_points",
     "load_league_settings",
     "load_player_pool",
+    "load_pool_snapshot",
 ]

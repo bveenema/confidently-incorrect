@@ -10,22 +10,24 @@ import json
 from pathlib import Path
 from typing import Any
 
-from data.pool import PlayerPool, PooledPlayer, QbInflationCheck
+from data.errors import DataConfigError
+from data.pool import (
+    POOL_SNAPSHOT_SCHEMA,
+    PlayerPool,
+    PooledPlayer,
+)
+from data.pool import (
+    load_pool_snapshot as load_data_pool_snapshot,
+)
 from draft.board import DraftBoard, RecordedPick, new_board, sync_settings
 from draft.errors import DraftConfigError, DraftStateError
 
 BOARD_FILENAME = "draft-board.json"
-POOL_SNAPSHOT_FILENAME = "player-pool.json"
 _BOARD_SCHEMA = 1
-_POOL_SCHEMA = 1
 
 
 def board_path(root: Path) -> Path:
     return root / BOARD_FILENAME
-
-
-def pool_snapshot_path(root: Path) -> Path:
-    return root / POOL_SNAPSHOT_FILENAME
 
 
 def load_board(root: Path, team_count: int, rounds: int) -> DraftBoard:
@@ -54,47 +56,14 @@ def save_board(root: Path, board: DraftBoard) -> None:
 
 def load_pool_snapshot(path: Path) -> PlayerPool:
     try:
-        raw = json.loads(path.read_text(encoding="utf-8-sig"))
-    except FileNotFoundError as exc:
-        raise DraftConfigError(f"missing player-pool snapshot: {path}") from exc
-    except json.JSONDecodeError as exc:
-        raise DraftConfigError(f"invalid JSON in {path}: {exc}") from exc
-    if not isinstance(raw, dict):
-        raise DraftConfigError(f"{path} must contain a JSON object")
-    version = raw.get("schema_version")
-    if version != _POOL_SCHEMA:
-        raise DraftConfigError(
-            f"{path} has unsupported schema_version {version!r} "
-            f"(expected {_POOL_SCHEMA})"
-        )
-    season = raw.get("season")
-    adp = raw.get("adp_scoring")
-    rows = raw.get("players")
-    if not isinstance(season, int) or isinstance(season, bool):
-        raise DraftConfigError(f"{path}: season must be an integer")
-    if not isinstance(adp, str) or not adp.strip():
-        raise DraftConfigError(f"{path}: adp_scoring must be a non-empty string")
-    if not isinstance(rows, list) or not rows:
-        raise DraftConfigError(f"{path}: players must be a non-empty array")
-    players = tuple(
-        _player_from_json(item, path, index) for index, item in enumerate(rows)
-    )
-    return PlayerPool(
-        season=season,
-        adp_scoring=adp,
-        players=players,
-        qb_inflation=QbInflationCheck(
-            ok=True,
-            median_gap=None,
-            top_qbs=(),
-            detail="loaded from snapshot",
-        ),
-    )
+        return load_data_pool_snapshot(path)
+    except DataConfigError as exc:
+        raise DraftConfigError(str(exc)) from exc
 
 
 def save_pool_snapshot(path: Path, pool: PlayerPool) -> None:
     payload = {
-        "schema_version": _POOL_SCHEMA,
+        "schema_version": POOL_SNAPSHOT_SCHEMA,
         "season": pool.season,
         "adp_scoring": pool.adp_scoring,
         "players": [_player_to_json(player) for player in pool.players],
@@ -218,64 +187,6 @@ def _player_to_json(player: PooledPlayer) -> dict[str, Any]:
         "scoring_incomplete": player.scoring_incomplete,
         "join": player.join,
     }
-
-
-def _player_from_json(item: Any, path: Path, index: int) -> PooledPlayer:
-    prefix = f"{path}: players[{index}]"
-    if not isinstance(item, dict):
-        raise DraftConfigError(f"{prefix} must be an object")
-    name = item.get("name")
-    position = item.get("position")
-    team = item.get("team")
-    if not isinstance(name, str) or not name.strip():
-        raise DraftConfigError(f"{prefix}.name must be a non-empty string")
-    if not isinstance(position, str) or not position.strip():
-        raise DraftConfigError(f"{prefix}.position must be a non-empty string")
-    if not isinstance(team, str) or not team.strip():
-        raise DraftConfigError(f"{prefix}.team must be a non-empty string")
-    return PooledPlayer(
-        name=name,
-        position=position,
-        team=team,
-        yahoo_id=_opt_str(item.get("yahoo_id")),
-        fpid=_opt_int(item.get("fpid")),
-        tank_id=_opt_str(item.get("tank_id")),
-        fp_points=_opt_num(item.get("fp_points")),
-        tank_points=_opt_num(item.get("tank_points")),
-        source_delta=_opt_num(item.get("source_delta")),
-        value_rank=_opt_int(item.get("value_rank")),
-        pos_rank=_opt_int(item.get("pos_rank")),
-        adp=_opt_num(item.get("adp")),
-        adp_delta=_opt_num(item.get("adp_delta")),
-        tier=_opt_int(item.get("tier")),
-        tier_break_after=bool(item.get("tier_break_after", False)),
-        scoring_incomplete=bool(item.get("scoring_incomplete", False)),
-        join=str(item.get("join") or "snapshot"),
-    )
-
-
-def _opt_str(value: Any) -> str | None:
-    if value is None:
-        return None
-    if isinstance(value, str):
-        return value
-    return str(value)
-
-
-def _opt_int(value: Any) -> int | None:
-    if value is None or isinstance(value, bool):
-        return None
-    if isinstance(value, int):
-        return value
-    return None
-
-
-def _opt_num(value: Any) -> int | float | None:
-    if value is None or isinstance(value, bool):
-        return None
-    if isinstance(value, (int, float)):
-        return value
-    return None
 
 
 def _atomic_write(path: Path, text: str) -> None:
