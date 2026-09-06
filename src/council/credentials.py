@@ -18,6 +18,7 @@ DEFAULT_MODELS: dict[str, str] = {
     "taco": "deepseek/deepseek-chat",
     "muskett": "x-ai/grok-4",
     "maddox": "google/gemini-2.5-pro",
+    "maddox_draft": "google/gemini-2.5-flash",
     "lasso": "google/gemini-2.5-flash",
 }
 
@@ -67,7 +68,16 @@ def credentials_exist(root: Path | None = None) -> bool:
     return True
 
 
-def model_for(persona: str, creds: OpenRouterCredentials) -> str:
+def model_for(
+    persona: str,
+    creds: OpenRouterCredentials,
+    *,
+    decision_type: str | None = None,
+) -> str:
+    if decision_type == "draft" and persona == "maddox":
+        override = creds.models.get("maddox_draft")
+        if override:
+            return override
     try:
         return creds.models[persona]
     except KeyError as exc:

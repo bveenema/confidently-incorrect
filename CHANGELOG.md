@@ -2,6 +2,29 @@
 
 ## Unreleased
 
+- Draft council must return or give up within ~40s: Flash GM,
+  15s HTTP timeout, 38s worker deadline. The tier list stays on
+  screen for every our-clock run so a name is always pickable
+  (D-112).
+- Draft slate keeps the last council write-up on screen until the
+  next our-clock run finishes; player names sit next to the rank
+  (D-111).
+- Gemini 2.5 Pro council calls no longer disable reasoning (that 400'd
+  as `gm_missing`). Claude still has thinking off (D-110).
+- Draft slate respects remaining starter slots from league settings
+  (no second QB once that slot is filled) and each row has a copy-
+  name control. Gemini/Claude council calls disable reasoning
+  tokens so the pick clock is not spent on thinking (D-109).
+- Draft board UI: glanceable localhost page with team-name clock
+  labels, positional available list, and a 1s `/state` poll that
+  paints the council slate when the background run finishes.
+  Season identity is `$CI_STATE_DIR/identities.json` (page-only
+  display names; football codes in notes). Draft order is a
+  drag-to-reorder list writing `$CI_STATE_DIR/draft-slots.json`
+  (member ids only); our seat is the row marked `ours` / named
+  Confidently Incorrect — no slot number to type (D-108). Panel is
+  kept in memory and recovered from `kb.db` on startup (D-106 /
+  D-107 / issues 10, 50).
 - Draft notes append: Lasso opening/closing color plus at most one
   structured observation per our pick (≤15). Recomputes write `kb.db`
   only. Tests use a temp dir (D-102 / issue 49). Note writes and

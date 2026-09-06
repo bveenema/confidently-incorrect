@@ -14,6 +14,7 @@ from data.pool import PooledPlayer, normalize_position
 from draft.board import DraftBoard, RecordedPick
 from draft.errors import DraftStateError
 from draft.match import player_key
+from draft.need import eligible
 
 # Prompt-size cap, not a league-derived value. Models only need a board
 # deep enough to rank 5; the full available pool is hundreds of rows.
@@ -43,10 +44,15 @@ def load_draft_strategy(root: Path) -> Any | None:
     return None
 
 
-def council_pool_keys(available: Sequence[PooledPlayer]) -> list[str]:
-    ranked = [p for p in available if p.value_rank is not None]
+def council_pool_keys(
+    available: Sequence[PooledPlayer],
+    settings: LeagueSettings | None = None,
+    roster: Sequence[RecordedPick] = (),
+) -> list[str]:
+    pool = eligible(available, settings, roster) if settings is not None else available
+    ranked = [p for p in pool if p.value_rank is not None]
     ranked.sort(key=lambda p: p.value_rank or 0)
-    rest = [p for p in available if p.value_rank is None]
+    rest = [p for p in pool if p.value_rank is None]
     rest.sort(key=lambda p: (-_sort_points(p), p.name))
     chosen = (ranked + rest)[:COUNCIL_POOL_CAP]
     return [player_key(p) for p in chosen]

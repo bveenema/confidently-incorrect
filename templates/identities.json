@@ -1,0 +1,16 @@
+{
+  "_readme": "FAKE display values. Copy to $CI_STATE_DIR/identities.json and replace display with the real fantasy team names. Set ours=true on our row. pseudonym is the season-stable code written to notes. Never commit the live file. Extra keys are ignored.",
+  "schema_version": 1,
+  "members": {
+    "m1": {"pseudonym": "Red Zone", "display": "Red Zone"},
+    "m2": {"pseudonym": "Hail Mary", "display": "Hail Mary"},
+    "m3": {"pseudonym": "Play Action", "display": "Play Action"},
+    "m4": {"pseudonym": "Nickel Back", "display": "Nickel Back"},
+    "m5": {"pseudonym": "Tight End", "display": "Confidently Incorrect", "ours": true},
+    "m6": {"pseudonym": "Goal Line", "display": "Goal Line"},
+    "m7": {"pseudonym": "Stiff Arm", "display": "Stiff Arm"},
+    "m8": {"pseudonym": "Hash Mark", "display": "Hash Mark"},
+    "m9": {"pseudonym": "Boot Leg", "display": "Boot Leg"},
+    "m10": {"pseudonym": "Fade Route", "display": "Fade Route"}
+  }
+}

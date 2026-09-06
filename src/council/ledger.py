@@ -7,6 +7,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
+from typing import Any
 from zoneinfo import ZoneInfo
 
 from council.errors import CouncilError
@@ -244,6 +245,126 @@ def insert_decision(root: Path, run_id: int, decision: GmDecision) -> None:
         raise
     except Exception as exc:
         raise CouncilError(f"failed to insert decision: {exc}") from exc
+
+
+@dataclass(frozen=True)
+class StoredBrief:
+    persona: str
+    confidence: float | None
+    reasoning: str | None
+    dissent: str | None
+
+
+@dataclass(frozen=True)
+class StoredDecision:
+    rationale: str
+    adopted_from: tuple[str, ...]
+    overruled: tuple[str, ...]
+    final_actions: tuple[dict[str, Any], ...]
+
+
+@dataclass(frozen=True)
+class StoredDraftRun:
+    run_id: int
+    packet_hash: str
+    failure_mode: str | None
+    absent: tuple[str, ...]
+    briefs: tuple[StoredBrief, ...]
+    decision: StoredDecision | None
+
+
+def load_latest_draft_run(root: Path, packet_hash: str) -> StoredDraftRun | None:
+    """Read the newest draft run for this packet_hash. Missing db is None."""
+    from db.paths import db_path
+
+    if not db_path(root).is_file():
+        return None
+    try:
+        with connect(root) as conn:
+            row = conn.execute(
+                """
+                SELECT id, packet_hash, failure_mode, absent_personas
+                FROM runs
+                WHERE decision_type = 'draft' AND packet_hash = ?
+                ORDER BY id DESC
+                LIMIT 1
+                """,
+                (packet_hash,),
+            ).fetchone()
+            if row is None:
+                return None
+            run_id = int(row[0])
+            brief_rows = conn.execute(
+                """
+                SELECT persona, confidence, reasoning, dissent
+                FROM briefs WHERE run_id = ? ORDER BY id
+                """,
+                (run_id,),
+            ).fetchall()
+            dec = conn.execute(
+                """
+                SELECT rationale, adopted_from, overruled, final_actions
+                FROM decisions WHERE run_id = ? ORDER BY id DESC LIMIT 1
+                """,
+                (run_id,),
+            ).fetchone()
+    except DbError:
+        raise
+    except Exception as exc:
+        raise CouncilError(
+            f"failed to load draft run for packet_hash {packet_hash}: {exc}"
+        ) from exc
+    absent_raw = row[3] or ""
+    absent = tuple(part.strip() for part in str(absent_raw).split(",") if part.strip())
+    briefs = tuple(
+        StoredBrief(
+            persona=str(item[0]),
+            confidence=float(item[1]) if item[1] is not None else None,
+            reasoning=item[2] if isinstance(item[2], str) else None,
+            dissent=item[3] if isinstance(item[3], str) else None,
+        )
+        for item in brief_rows
+    )
+    decision = None
+    if dec is not None:
+        decision = StoredDecision(
+            rationale=dec[0] if isinstance(dec[0], str) else "",
+            adopted_from=_json_str_tuple(dec[1]),
+            overruled=_json_str_tuple(dec[2]),
+            final_actions=_json_obj_tuple(dec[3]),
+        )
+    return StoredDraftRun(
+        run_id=run_id,
+        packet_hash=str(row[1] or packet_hash),
+        failure_mode=row[2] if isinstance(row[2], str) else None,
+        absent=absent,
+        briefs=briefs,
+        decision=decision,
+    )
+
+
+def _json_str_tuple(raw: object) -> tuple[str, ...]:
+    if not isinstance(raw, str) or not raw.strip():
+        return ()
+    try:
+        parsed = json.loads(raw)
+    except json.JSONDecodeError:
+        return ()
+    if not isinstance(parsed, list):
+        return ()
+    return tuple(item for item in parsed if isinstance(item, str))
+
+
+def _json_obj_tuple(raw: object) -> tuple[dict[str, Any], ...]:
+    if not isinstance(raw, str) or not raw.strip():
+        return ()
+    try:
+        parsed = json.loads(raw)
+    except json.JSONDecodeError:
+        return ()
+    if not isinstance(parsed, list):
+        return ()
+    return tuple(item for item in parsed if isinstance(item, dict))
 
 
 def _rec_json(rec: Recommendation) -> dict[str, object]:

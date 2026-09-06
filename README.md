@@ -204,23 +204,34 @@ clicks in the Yahoo room and records each pick on a local page.
    `league-settings.json`, the pool snapshot, and
    `tokens/openrouter.json` into it). `--state-dir` that resolves to
    the live `$CI_STATE_DIR` / `/srv/ci` is rejected (D-92).
-3. Open `http://127.0.0.1:8765/`. Enter our draft slot (1-based).
-   Team count is not typed here — edit the settings file if the
-   room grew; the page re-reads it.
+3. Open `http://127.0.0.1:8765/`. Drag the room into snake order —
+   our seat is wherever Confidently Incorrect lands (marked `ours`
+   in `identities.json`). You do not type a slot number. Team count
+   is not typed here — edit the settings file if the room grew; the
+   page re-reads it. Names can also be filled later on the board or
+   by copying `templates/identities.json` and
+   `templates/draft-slots.json` into `$CI_STATE_DIR`. The identities
+   file is the season-long real-name → code map; draft-slots.json
+   only lists who sits in seat 1..N. Real team names stay on the
+   page only (`?names=pseudonym` for a screenshot-safe view). Do not
+   commit the live identities file. Do not include it in the A-19
+   post-draft backup copy.
 4. Type a player name (or Yahoo id) and record the pick. If several
    rows match, pick from the list — the tool will not guess. "Other
    team picked (unnamed)" advances the clock without removing anyone
    from available (use this if naming every pick is too slow).
    Undo reverses the last row.
 
-The page is an unstyled form: next pick, on-the-clock slot, our next
-pick, the turn, a ranked council slate of 5+ (tier fallback until
-the background run finishes), our roster, and a truncated available
-list. Glanceable tiers are issue 10. Every recorded pick (and
-advance/undo) recomputes in the background; POST does not wait on
-models. Binds localhost only. Delete `draft-board.json` to start a
-session over. Changing `team_count` or `draft.rounds` after picks
-exist fails loud.
+The page shows next pick, who is on the clock, our next pick, the
+turn, a ranked council slate of 5+ (tier fallback until the
+background run finishes, then specialist reasoning and the GM
+rationale), our roster, and available players by position. The
+slate refreshes in place about once a second; pick entry never
+waits on the models. Every recorded pick (and advance/undo)
+recomputes in the background when we are on the clock. Binds
+localhost only. Delete `draft-board.json` to start a session over.
+Changing `team_count` or `draft.rounds` after picks exist fails
+loud.
 
 ### Decision ledger (kb.db)
 

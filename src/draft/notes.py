@@ -14,6 +14,7 @@ from council.prompts import LASSO_OUTPUT_CAP, lasso_system
 from draft.board import DraftBoard, RecordedPick
 from draft.errors import DraftStateError
 from draft.packet import build_draft_packet, load_draft_strategy
+from draft.slots import load_slots, pseudonym_for
 from notes.append import append_note, load_notes_text, retract_note
 from notes.errors import NotesError
 
@@ -64,7 +65,14 @@ class DraftNotes:
                     event="draft-pick",
                     overall=pick.overall,
                     player_key=pick.player_key,
-                    body=_pick_body(pick, slate),
+                    body=_pick_body(
+                        pick,
+                        slate,
+                        mapping=load_slots(self._app.root),
+                        previous_clock=(
+                            board.picks[-2].slot if len(board.picks) >= 2 else None
+                        ),
+                    ),
                 )
         except NotesError as exc:
             raise DraftStateError(str(exc)) from exc
@@ -159,7 +167,13 @@ class DraftNotes:
         )
 
 
-def _pick_body(pick: RecordedPick, slate: Any | None) -> str:
+def _pick_body(
+    pick: RecordedPick,
+    slate: Any | None,
+    *,
+    mapping: Any | None = None,
+    previous_clock: int | None = None,
+) -> str:
     name = pick.name or "Unknown"
     line = f"Took [[{name}]]"
     extra = [part for part in (pick.position, pick.team) if part]
@@ -167,6 +181,10 @@ def _pick_body(pick: RecordedPick, slate: Any | None) -> str:
         line += f" ({', '.join(extra)})"
     line += f" at overall {pick.overall}."
     lines = [line]
+    if mapping is not None:
+        lines.append(f"Seat {pseudonym_for(mapping, pick.slot)}.")
+        if previous_clock is not None and previous_clock != pick.slot:
+            lines.append(f"Previous clock {pseudonym_for(mapping, previous_clock)}.")
     items = getattr(slate, "items", None)
     if items:
         top = ", ".join(f"[[{item.name}]]" for item in items[:3])

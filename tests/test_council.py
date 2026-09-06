@@ -17,14 +17,20 @@ from council import (
     validate_gm,
 )
 from council.__main__ import main
-from council.credentials import DEFAULT_MODELS, credentials_path
+from council.credentials import DEFAULT_MODELS, credentials_path, model_for
+from council.openrouter import _completion_body
 from council.paths import state_dir
 from council.prompts import gm_system, specialist_system
 from council.schema import canonicalize_player_key, parse_json_object
 from db import connect, migrate
 
 POOL = [f"yahoo:{i}" for i in range(1, 8)]
-PERSONA_FOR_MODEL = {model: name for name, model in DEFAULT_MODELS.items()}
+PERSONA_FOR_MODEL = {
+    model: name
+    for name, model in DEFAULT_MODELS.items()
+    if name not in {"maddox_draft", "lasso"}
+}
+PERSONA_FOR_MODEL[DEFAULT_MODELS["maddox_draft"]] = "maddox"
 
 
 def _write_key(root: Path, key: str = "test-key") -> None:
@@ -129,6 +135,27 @@ def _client(root: Path, handler) -> OpenRouterClient:
     _write_key(root)
     http = httpx.Client(transport=httpx.MockTransport(handler))
     return OpenRouterClient(root, http=http)
+
+
+def test_gemini_keeps_required_reasoning() -> None:
+    gemini = _completion_body("google/gemini-2.5-pro", "sys", "user")
+    assert "reasoning" not in gemini
+    claude = _completion_body("anthropic/claude-sonnet-4.5", "sys", "user")
+    assert claude["reasoning"] == {"enabled": False, "effort": "none"}
+    other = _completion_body("openai/gpt-4o", "sys", "user")
+    assert "reasoning" not in other
+
+
+def test_draft_gm_uses_flash_slug(tmp_path: Path) -> None:
+    _write_key(tmp_path)
+    creds = load_credentials(tmp_path)
+    assert model_for("maddox", creds) == "google/gemini-2.5-pro"
+    assert model_for("maddox", creds, decision_type="lineup") == (
+        "google/gemini-2.5-pro"
+    )
+    assert model_for("maddox", creds, decision_type="draft") == (
+        "google/gemini-2.5-flash"
+    )
 
 
 def test_placeholder_key_rejected(tmp_path: Path) -> None:

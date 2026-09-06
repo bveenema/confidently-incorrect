@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import threading
+import time
 from pathlib import Path
 
 import pytest
@@ -59,11 +60,13 @@ def _player(
     )
 
 
-PLAYERS = tuple(
-    _player(name, str(index + 1), rank=index + 1)
-    for index, name in enumerate(
-        ("Alpha", "Bravo", "Charlie", "Delta", "Echo", "Foxtrot")
-    )
+PLAYERS = (
+    _player("Alpha", "1", rank=1, position="QB"),
+    _player("Bravo", "2", rank=2, position="RB"),
+    _player("Charlie", "3", rank=3, position="WR"),
+    _player("Delta", "4", rank=4, position="RB"),
+    _player("Echo", "5", rank=5, position="WR"),
+    _player("Foxtrot", "6", rank=6, position="TE"),
 )
 
 
@@ -265,6 +268,136 @@ def test_undo_of_our_pick_omits_retracted_note_from_council_packet(
     assert not any(note.event == "draft-pick" for note in list_notes(tmp_path))
 
 
+def test_other_clock_keeps_last_council_panel(tmp_path: Path) -> None:
+    calls = {"n": 0}
+
+    def counting(**kwargs: object) -> CouncilResult:
+        calls["n"] += 1
+        return _ok_runner(**kwargs)
+
+    app = _ready(tmp_path, runner=counting)
+    handle_request(app, "POST", "/setup", "", {"our_slot": "1"})
+    app.recompute.wait_idle()
+    assert calls["n"] == 1
+    first = app.recompute.latest
+    assert first is not None
+    assert first.source == "council"
+    assert first.panel is not None
+    handle_request(app, "POST", "/pick", "", {"q": "Alpha"})
+    app.recompute.wait_idle()
+    assert calls["n"] == 1
+    kept = app.recompute.latest
+    assert kept is not None
+    assert kept.source == "fallback"
+    assert kept.panel is not None
+    assert first.panel is not None
+    assert kept.panel.decision == first.panel.decision
+    assert kept.panel.packet_hash == kept.packet_hash
+    assert "Alpha" not in {item.name for item in kept.items}
+    page = handle_request(app, "GET", "/", "", {})
+    assert page.body is not None
+    assert "tier fallback" in page.body
+    assert "GM rationale" in page.body
+    assert "Ranked slate." in page.body
+
+
+def test_gm_missing_after_other_clock_keeps_held_panel(tmp_path: Path) -> None:
+    def boom(**kwargs: object) -> CouncilResult:
+        raise CouncilRunError("run failed: gm_missing", failure_mode="gm_missing")
+
+    app = _ready(tmp_path, team_count=2, rounds=2)
+    handle_request(app, "POST", "/setup", "", {"our_slot": "1"})
+    app.recompute.wait_idle()
+    first = app.recompute.latest
+    assert first is not None
+    assert first.panel is not None
+    handle_request(app, "POST", "/pick", "", {"q": "Alpha"})
+    app.recompute.wait_idle()
+    handle_request(app, "POST", "/pick", "", {"q": "Bravo"})
+    app.recompute.wait_idle()
+    app.recompute._runner = boom
+    handle_request(app, "POST", "/pick", "", {"q": "Charlie"})
+    app.recompute.wait_idle()
+    latest = app.recompute.latest
+    assert latest is not None
+    assert latest.source == "fallback"
+    assert latest.panel is not None
+    assert latest.panel.decision is not None
+    assert latest.panel.decision.rationale == "Ranked slate."
+    assert latest.failure_mode is None
+    page = handle_request(app, "GET", "/", "", {})
+    assert page.body is not None
+    assert "Ranked slate." in page.body
+    assert "Model failure" not in page.body
+
+
+def test_our_clock_run_keeps_fallback_names_and_held_panel(tmp_path: Path) -> None:
+    started = threading.Event()
+    release = threading.Event()
+
+    def slow(**kwargs: object) -> CouncilResult:
+        started.set()
+        assert release.wait(timeout=2)
+        return _ok_runner(**kwargs)
+
+    app = _ready(tmp_path)
+    handle_request(app, "POST", "/setup", "", {"our_slot": "1"})
+    app.recompute.wait_idle()
+    first = app.recompute.latest
+    assert first is not None
+    assert first.source == "council"
+    _, board = app.load()
+    app.recompute._runner = slow
+    app.recompute.schedule(board)
+    assert started.wait(timeout=2)
+    latest = app.recompute.latest
+    assert latest is not None
+    assert latest.source == "fallback"
+    assert len(latest.items) >= 5
+    assert latest.panel is not None
+    assert latest.panel.decision is not None
+    assert latest.panel.decision.rationale == "Ranked slate."
+    page = handle_request(app, "GET", "/", "", {})
+    assert page.body is not None
+    assert "tier fallback" in page.body
+    assert "council running" in page.body
+    assert "Alpha" in page.body
+    assert "GM rationale" in page.body
+    release.set()
+    app.recompute.wait_idle()
+
+
+def test_deadline_drops_a_late_council_panel(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr("draft.recompute.DRAFT_DEADLINE_S", 0.05)
+    started = threading.Event()
+    release = threading.Event()
+
+    def slow(**kwargs: object) -> CouncilResult:
+        started.set()
+        assert release.wait(timeout=2)
+        return _ok_runner(**kwargs)
+
+    app = _ready(tmp_path, runner=slow)
+    handle_request(app, "POST", "/setup", "", {"our_slot": "1"})
+    assert started.wait(timeout=2)
+    assert app.recompute.latest is not None
+    assert app.recompute.latest.source == "fallback"
+    assert app.recompute.in_flight
+    until = time.monotonic() + 0.4
+    while app.recompute.in_flight and time.monotonic() < until:
+        time.sleep(0.02)
+    assert not app.recompute.in_flight
+    assert app.recompute.latest.source == "fallback"
+    release.set()
+    app.recompute.wait_idle()
+    latest = app.recompute.latest
+    assert latest is not None
+    assert latest.source == "fallback"
+    assert latest.panel is None
+
+
 def test_other_clock_does_not_call_the_panel(tmp_path: Path) -> None:
     calls = {"n": 0}
 
@@ -427,5 +560,9 @@ def test_page_lists_five_after_setup(tmp_path: Path) -> None:
     app.recompute.wait_idle()
     page = handle_request(app, "GET", "/", "", {})
     assert page.body is not None
+    assert "Council slate" in page.body
     for name in ("Alpha", "Bravo", "Charlie", "Delta", "Echo"):
         assert name in page.body
+    assert 'class="copy-name"' in page.body
+    chunk = page.body[page.body.find("Council slate") :]
+    assert chunk.find('class="rk"') < chunk.find('class="nm"') < chunk.find("copy-name")

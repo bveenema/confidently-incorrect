@@ -32,12 +32,13 @@ class OpenRouterClient:
         state_dir: Path,
         http: httpx.Client | None = None,
         creds: OpenRouterCredentials | None = None,
+        timeout: float | None = None,
     ) -> None:
         self._root = state_dir
         self._creds = creds or load_credentials(state_dir)
         self._owns_http = http is None
         self._http = http or httpx.Client(
-            timeout=DEFAULT_TIMEOUT,
+            timeout=DEFAULT_TIMEOUT if timeout is None else timeout,
             headers={
                 "User-Agent": USER_AGENT,
                 "Accept": "application/json",
@@ -61,13 +62,7 @@ class OpenRouterClient:
                     "Content-Type": "application/json",
                     "X-Title": "confidently-incorrect",
                 },
-                json={
-                    "model": model,
-                    "messages": [
-                        {"role": "system", "content": system},
-                        {"role": "user", "content": user},
-                    ],
-                },
+                json=_completion_body(model, system, user),
             )
         except httpx.HTTPError as exc:
             raise CouncilAPIError(f"OpenRouter request failed: {exc}") from exc
@@ -86,6 +81,23 @@ class OpenRouterClient:
         used_model = payload.get("model")
         recorded = used_model if isinstance(used_model, str) and used_model else model
         return Completion(model=recorded, content=content, tokens=tokens, cost=cost)
+
+
+def _completion_body(model: str, system: str, user: str) -> dict[str, Any]:
+    body: dict[str, Any] = {
+        "model": model,
+        "messages": [
+            {"role": "system", "content": system},
+            {"role": "user", "content": user},
+        ],
+    }
+    # Claude accepts reasoning off. Gemini 2.5 Pro does not — OpenRouter
+    # returns 400 "Reasoning is mandatory" and the run fails gm_missing
+    # (D-110). Leave Gemini at the provider default.
+    lower = model.lower()
+    if "anthropic" in lower or "claude" in lower:
+        body["reasoning"] = {"enabled": False, "effort": "none"}
+    return body
 
 
 def _message_content(payload: dict[str, Any]) -> str:
