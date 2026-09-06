@@ -77,7 +77,7 @@ def test_setup_pick_advance_undo(tmp_path: Path) -> None:
 
     setup = handle_request(app, "POST", "/setup", "", {"our_slot": "8"})
     assert setup.status == 303
-    assert setup.location is not None and "slot saved" in unquote(setup.location)
+    assert setup.location is not None and "room saved" in unquote(setup.location)
 
     recorded = handle_request(app, "POST", "/pick", "", {"q": "Alpha"})
     assert recorded.status == 303
@@ -87,7 +87,7 @@ def test_setup_pick_advance_undo(tmp_path: Path) -> None:
 
     board_page = handle_request(app, "GET", "/", "", {})
     assert board_page.body is not None
-    assert "Next pick: 2" in board_page.body
+    assert 'id="next-pick">2<' in board_page.body
     assert "Alpha" in board_page.body
     assert "Bravo" in board_page.body
     assert "Available (1)" in board_page.body
@@ -170,7 +170,7 @@ def test_http_roundtrip(tmp_path: Path) -> None:
         posted = conn.getresponse()
         posted.read()
         assert posted.status == 303
-        assert "slot saved" in unquote(posted.getheader("Location", ""))
+        assert "room saved" in unquote(posted.getheader("Location", ""))
         conn.close()
     finally:
         httpd.shutdown()

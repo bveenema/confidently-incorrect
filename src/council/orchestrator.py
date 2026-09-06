@@ -210,7 +210,9 @@ def _specialist_call(
 ) -> tuple[Brief | None, str | None, Completion | None]:
     try:
         completion = client.complete(
-            model=model_for(persona, client.credentials),
+            model=model_for(
+                persona, client.credentials, decision_type=decision_type
+            ),
             system=specialist_system(persona, team_count),
             user=user,
         )
@@ -238,7 +240,7 @@ def _gm_call(
 ) -> tuple[GmDecision | None, Brief | None, str | None, Completion | None, str | None]:
     try:
         completion = client.complete(
-            model=model_for(GM, client.credentials),
+            model=model_for(GM, client.credentials, decision_type=decision_type),
             system=gm_system(team_count),
             user=user,
         )
@@ -279,11 +281,15 @@ def _team_count(packet: Mapping[str, Any]) -> int | None:
     return raw
 
 
+def _compact(value: Any) -> str:
+    return json.dumps(value, sort_keys=True, separators=(",", ":"), default=str)
+
+
 def _specialist_user(packet: dict[str, Any], pool: set[str], decision_type: str) -> str:
     keys = "\n".join(f"- {key}" for key in sorted(pool))
     return (
         f"decision_type: {decision_type}\n\n"
-        f"DECISION PACKET\n{json.dumps(packet, indent=2, sort_keys=True)}\n\n"
+        f"DECISION PACKET\n{_compact(packet)}\n\n"
         f"VALID PLAYER KEYS\n{keys}\n"
     )
 
@@ -318,7 +324,7 @@ def _gm_user(
     keys = "\n".join(f"- {key}" for key in sorted(pool))
     return (
         f"decision_type: {decision_type}\n\n"
-        f"DECISION PACKET\n{json.dumps(packet, indent=2, sort_keys=True)}\n\n"
-        f"SPECIALIST BRIEFS\n{json.dumps(payload, indent=2, sort_keys=True)}\n\n"
+        f"DECISION PACKET\n{_compact(packet)}\n\n"
+        f"SPECIALIST BRIEFS\n{_compact(payload)}\n\n"
         f"VALID PLAYER KEYS\n{keys}\n"
     )

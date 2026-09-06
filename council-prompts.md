@@ -46,7 +46,12 @@ Field notes:
 - `dissent` — nullable. Populated when the persona wants to flag that
   the consensus is wrong.
 - `draft` action — for draft runs, use `action: "draft"` and rank by
-  `priority` (1 is best available for the current pick).
+  `priority` (1 is best available for the current pick). Recommend
+  only players who fill an open starting slot
+  (`positional_scarcity.need > 0`). Flex can take WR/RB/TE. Do not
+  recommend a second QB, K, or DST once that slot is filled. Spread
+  the five names across remaining needs (D-109). The board also
+  drops surplus-position names from the displayed slate.
 - `player_key` — must be validated against the live roster / free agent
   pool before execution. Reject the whole brief on a bad key rather than
   retrying.

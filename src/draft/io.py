@@ -51,7 +51,7 @@ def save_board(root: Path, board: DraftBoard) -> None:
         "our_slot": board.our_slot,
         "picks": [_pick_to_json(pick) for pick in board.picks],
     }
-    _atomic_write(board_path(root), json.dumps(payload, indent=2) + "\n")
+    atomic_write(board_path(root), json.dumps(payload, indent=2) + "\n")
 
 
 def load_pool_snapshot(path: Path) -> PlayerPool:
@@ -61,6 +61,15 @@ def load_pool_snapshot(path: Path) -> PlayerPool:
         raise DraftConfigError(str(exc)) from exc
 
 
+def atomic_write(path: Path, text: str) -> None:
+    tmp = path.with_name(path.name + ".tmp")
+    try:
+        tmp.write_text(text, encoding="utf-8")
+        tmp.replace(path)
+    except OSError as exc:
+        raise DraftStateError(f"failed writing {path}: {exc}") from exc
+
+
 def save_pool_snapshot(path: Path, pool: PlayerPool) -> None:
     payload = {
         "schema_version": POOL_SNAPSHOT_SCHEMA,
@@ -68,7 +77,7 @@ def save_pool_snapshot(path: Path, pool: PlayerPool) -> None:
         "adp_scoring": pool.adp_scoring,
         "players": [_player_to_json(player) for player in pool.players],
     }
-    _atomic_write(path, json.dumps(payload, indent=2) + "\n")
+    atomic_write(path, json.dumps(payload, indent=2) + "\n")
 
 
 def _parse_board(
@@ -187,12 +196,3 @@ def _player_to_json(player: PooledPlayer) -> dict[str, Any]:
         "scoring_incomplete": player.scoring_incomplete,
         "join": player.join,
     }
-
-
-def _atomic_write(path: Path, text: str) -> None:
-    tmp = path.with_name(path.name + ".tmp")
-    try:
-        tmp.write_text(text, encoding="utf-8")
-        tmp.replace(path)
-    except OSError as exc:
-        raise DraftStateError(f"failed writing {path}: {exc}") from exc

@@ -7,6 +7,7 @@
     "taco": "deepseek/deepseek-chat",
     "muskett": "x-ai/grok-4",
     "maddox": "google/gemini-2.5-pro",
+    "maddox_draft": "google/gemini-2.5-flash",
     "lasso": "google/gemini-2.5-flash"
   }
 }

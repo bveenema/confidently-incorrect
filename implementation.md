@@ -238,8 +238,12 @@ moves before Sunday.
 6. Notes append path + Lasso draft open/close notes (volume-capped:
    max one note per our pick) — issue 49
 7. Draft display council panel rendered from `kb.db` by `packet_hash`
-   — issue 10
+   — issue 10 (done: in-memory panel + startup recovery + `/state` poll)
 8. Slot-to-pseudonym mapping if notes mention other managers — issue 50
+   (identities.json is the season map; draft-slots.json is order only.
+   Our seat is the `ours` row, dragged into place — D-108. First
+   consumer is the our-pick note's football codes. Notes still do
+   not treat another manager as the subject. Leave #50 open.)
 
 **Cut first if schedule slips:**
 

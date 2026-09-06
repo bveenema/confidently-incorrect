@@ -297,6 +297,7 @@ def lasso_system(team_count: int | None = None) -> str:
         ]
     )
 
+
 SPECIALIST_PROMPTS: dict[str, str] = {
     "belichuk": BELICHUK,
     "brand": BRAND,
@@ -328,6 +329,10 @@ Return exactly this JSON object. No prose outside it.
 
 For draft runs use action "draft" and rank at least 5 players by priority
 (1 is best). Use only player_key values listed under VALID PLAYER KEYS.
+Recommend players who fill an open starting slot in positional_scarcity
+(need > 0). Flex (W/R/T) can take WR/RB/TE. Do not recommend a second
+QB, K, or DST once that slot's need is 0. Spread the five names across
+open needs — do not fill the slate with one position.
 """
 
 GM_SCHEMA_REMINDER = """\
@@ -345,7 +350,9 @@ Return exactly this JSON object. No prose outside it.
 }
 
 For draft runs rank at least 5 players in final_actions. Use only
-player_key values listed under VALID PLAYER KEYS.
+player_key values listed under VALID PLAYER KEYS. Honour the same
+positional-need rule as the specialists: open starter slots first,
+no second QB/K/DST, spread across remaining needs.
 """
 
 
