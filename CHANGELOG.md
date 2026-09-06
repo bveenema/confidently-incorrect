@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- GitHub PRs, issues, comments, and issue replies from agents must
+  open with a jargon-free "What this means" section, then a "Details"
+  section (`.ai/rules.md` §9 / D-99).
 - Draft council on `python -m draft serve`: `--state-dir` rehearsal
   isolation (rejects the live runtime root), a ranked 5+ slate on the
   page, background latest-only recompute after every board change,
