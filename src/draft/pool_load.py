@@ -10,11 +10,11 @@ from data import DataError
 from data.fantasypros import FantasyProsClient
 from data.fantasypros import state_dir as fantasypros_state_dir
 from data.league_settings import LeagueSettings
-from data.pool import PlayerPool, load_player_pool
+from data.pool import PlayerPool, load_player_pool, pool_snapshot_path
 from data.tank01 import Tank01Client
 from data.tank01 import state_dir as tank01_state_dir
 from draft.errors import DraftConfigError
-from draft.io import load_pool_snapshot, pool_snapshot_path, save_pool_snapshot
+from draft.io import load_pool_snapshot, save_pool_snapshot
 
 
 def load_draft_pool(

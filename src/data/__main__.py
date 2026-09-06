@@ -1,4 +1,4 @@
-"""CLI: league settings, provider smokes, player pool."""
+"""CLI: league settings, provider smokes, player pool, pre-rank sheet."""
 
 from __future__ import annotations
 
@@ -13,7 +13,15 @@ from data.errors import DataError, LeagueSettingsError
 from data.fantasypros import ATTRIBUTION, FantasyProsClient
 from data.fantasypros import state_dir as fantasypros_state_dir
 from data.league_settings import load_league_settings, load_league_settings_file
-from data.pool import PlayerPool, PooledPlayer, load_player_pool
+from data.league_settings import state_dir as league_state_dir
+from data.pool import (
+    PlayerPool,
+    PooledPlayer,
+    load_player_pool,
+    load_pool_snapshot,
+    pool_snapshot_path,
+)
+from data.prerank import DEFAULT_LIMIT, format_prerank, select_prerank
 from data.tank01 import ATTRIBUTION as TANK01_ATTRIBUTION
 from data.tank01 import Tank01Client
 from data.tank01 import state_dir as tank01_state_dir
@@ -60,6 +68,37 @@ def main(argv: Sequence[str] | None = None) -> int:
         default=0,
         help="NFL season year (default: current year in America/New_York)",
     )
+    prerank = sub.add_parser(
+        "pre-rank",
+        help="top ~200 by league scoring for Yahoo pre-rank entry",
+    )
+    prerank.add_argument(
+        "--season",
+        type=int,
+        default=0,
+        help="NFL season year (default: current year in America/New_York)",
+    )
+    prerank.add_argument(
+        "--limit",
+        type=int,
+        default=DEFAULT_LIMIT,
+        help=f"how many ranked players to list (default: {DEFAULT_LIMIT})",
+    )
+    prerank.add_argument(
+        "--pool",
+        type=Path,
+        help="player-pool.json snapshot (default: $CI_STATE_DIR/player-pool.json)",
+    )
+    prerank.add_argument(
+        "--out",
+        type=Path,
+        help="write the sheet to this file (default: stdout)",
+    )
+    prerank.add_argument(
+        "--refresh",
+        action="store_true",
+        help="rebuild from live APIs instead of using a snapshot",
+    )
     args = parser.parse_args(list(argv) if argv is not None else None)
     if args.command == "validate-league-settings":
         return _validate_league_settings(args.path)
@@ -69,6 +108,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         return _tank01_smoke(args.odds_date)
     if args.command == "player-pool":
         return _player_pool(args.season)
+    if args.command == "pre-rank":
+        return _pre_rank(args.season, args.limit, args.pool, args.out, args.refresh)
     print(f"error: unknown command {args.command!r}", file=sys.stderr)
     return 2
 
@@ -151,6 +192,49 @@ def _player_pool(season: int) -> int:
     print(ATTRIBUTION)
     print(TANK01_ATTRIBUTION)
     return 0
+
+
+def _pre_rank(
+    season: int,
+    limit: int,
+    pool_path: Path | None,
+    out: Path | None,
+    refresh: bool,
+) -> int:
+    year = season or datetime.now(ZoneInfo("America/New_York")).year
+    try:
+        pool = _resolve_prerank_pool(year, pool_path, refresh)
+        rows = select_prerank(pool, limit)
+        text = format_prerank(rows, pool)
+        if out is None:
+            print(text)
+            return 0
+        try:
+            out.write_text(text + "\n", encoding="utf-8")
+        except OSError as exc:
+            raise DataConfigError(f"failed writing {out}: {exc}") from exc
+    except DataError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 1
+    print(f"ok: wrote {out} ({len(rows)} players)")
+    return 0
+
+
+def _resolve_prerank_pool(
+    season: int, pool_path: Path | None, refresh: bool
+) -> PlayerPool:
+    if not refresh:
+        if pool_path is not None:
+            return load_pool_snapshot(pool_path)
+        snap = pool_snapshot_path(league_state_dir())
+        if snap.exists():
+            return load_pool_snapshot(snap)
+    settings = load_league_settings()
+    with (
+        FantasyProsClient(fantasypros_state_dir()) as fp,
+        Tank01Client(tank01_state_dir()) as tank,
+    ):
+        return load_player_pool(settings, fp, tank, season=season)
 
 
 def format_player_pool(pool: PlayerPool) -> str:
