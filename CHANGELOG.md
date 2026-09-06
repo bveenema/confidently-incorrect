@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Draft council on `python -m draft serve`: `--state-dir` rehearsal
+  isolation (rejects the live runtime root), a ranked 5+ slate on the
+  page, background latest-only recompute after every board change,
+  `considered_options` written with `chosen=0` before a run is
+  renderable, and tier fallthrough with `failure_mode` when the models
+  fail. Pick POST never waits on OpenRouter (D-98 / issue 12).
 - `templates/openrouter.json` lists the default per-persona OpenRouter
   slugs so a live copy can override them without reading the code.
 - Council orchestrator (`python -m council run`): OpenRouter key from
