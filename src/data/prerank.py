@@ -13,8 +13,10 @@ from data.pool import PlayerPool, PooledPlayer
 DEFAULT_LIMIT = 200
 
 
-def select_prerank(pool: PlayerPool, limit: int = DEFAULT_LIMIT) -> tuple[PooledPlayer, ...]:
-    """Top complete-scoring players by value_rank. Incomplete K/DST are omitted."""
+def select_prerank(
+    pool: PlayerPool, limit: int = DEFAULT_LIMIT
+) -> tuple[PooledPlayer, ...]:
+    """Top complete-scoring players by value_rank. Incomplete K/DST omitted."""
     if limit < 1:
         raise DataConfigError("pre-rank limit must be >= 1")
     ranked = pool.by_value_rank()

@@ -87,7 +87,13 @@ def test_select_orders_by_value_rank_not_adp() -> None:
     pool = _pool(
         _player("Late ADP Star", value_rank=1, adp=40.0, fp_points=400),
         _player("Early ADP Role", value_rank=2, adp=2.0, fp_points=200),
-        _player("Boot", position="K", team="NYJ", value_rank=None, scoring_incomplete=True),
+        _player(
+            "Boot",
+            position="K",
+            team="NYJ",
+            value_rank=None,
+            scoring_incomplete=True,
+        ),
     )
     rows = select_prerank(pool, limit=10)
     assert [p.name for p in rows] == ["Late ADP Star", "Early ADP Role"]
@@ -105,7 +111,15 @@ def test_select_respects_limit() -> None:
 
 
 def test_select_rejects_empty_and_bad_limit() -> None:
-    empty = _pool(_player("Boot", position="K", team="NYJ", value_rank=None, scoring_incomplete=True))
+    empty = _pool(
+        _player(
+            "Boot",
+            position="K",
+            team="NYJ",
+            value_rank=None,
+            scoring_incomplete=True,
+        )
+    )
     with pytest.raises(DataConfigError, match="no complete-scoring"):
         select_prerank(empty)
     pool = _pool(_player("A", value_rank=1))
@@ -117,7 +131,13 @@ def test_format_is_numbered_and_says_not_adp() -> None:
     pool = _pool(
         _player("Late ADP Star", value_rank=1, adp=40.0),
         _player("Early ADP Role", value_rank=2, adp=2.0),
-        _player("Boot", position="K", team="NYJ", value_rank=None, scoring_incomplete=True),
+        _player(
+            "Boot",
+            position="K",
+            team="NYJ",
+            value_rank=None,
+            scoring_incomplete=True,
+        ),
     )
     text = format_prerank(select_prerank(pool), pool)
     assert "not published ADP" in text
@@ -130,7 +150,9 @@ def test_format_is_numbered_and_says_not_adp() -> None:
     assert "2.0" not in body
 
 
-def test_cli_pool_stdout_and_out(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+def test_cli_pool_stdout_and_out(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
     pool = _pool(
         _player("Late ADP Star", value_rank=1, adp=40.0),
         _player("Early ADP Role", value_rank=2, adp=2.0),
@@ -159,7 +181,9 @@ def test_cli_uses_state_dir_snapshot(
     assert "1\tAlpha\tQB\tBUF" in capsys.readouterr().out
 
 
-def test_cli_missing_pool_fails(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+def test_cli_missing_pool_fails(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
     missing = tmp_path / "nope.json"
     assert main(["pre-rank", "--pool", str(missing)]) == 1
     err = capsys.readouterr().err

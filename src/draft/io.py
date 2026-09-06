@@ -15,6 +15,8 @@ from data.pool import (
     POOL_SNAPSHOT_SCHEMA,
     PlayerPool,
     PooledPlayer,
+)
+from data.pool import (
     load_pool_snapshot as load_data_pool_snapshot,
 )
 from draft.board import DraftBoard, RecordedPick, new_board, sync_settings

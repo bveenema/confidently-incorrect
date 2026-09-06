@@ -9,7 +9,7 @@ from datetime import datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
-from data.errors import DataError, LeagueSettingsError
+from data.errors import DataConfigError, DataError, LeagueSettingsError
 from data.fantasypros import ATTRIBUTION, FantasyProsClient
 from data.fantasypros import state_dir as fantasypros_state_dir
 from data.league_settings import load_league_settings, load_league_settings_file
