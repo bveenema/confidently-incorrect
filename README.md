@@ -160,6 +160,26 @@ Needs league settings plus both provider token files. Exits 1 if
 FantasyPros truncates the pool, ADP is empty, or Tank01 returns no
 players.
 
+### Pre-rank sheet (Yahoo manual entry)
+
+Yahoo has no pre-rank API. `python -m data pre-rank` prints the top 200
+complete-scoring players in **our** league order (not ADP) as a
+numbered list you paste or type into Yahoo's pre-draft rankings.
+
+Uses `$CI_STATE_DIR/player-pool.json` when that snapshot exists
+(same file `draft serve` writes). `--pool PATH` selects a snapshot.
+`--refresh` rebuilds from live APIs and does not write the snapshot.
+`--out PATH` writes a file; otherwise stdout. `--limit` defaults to
+200 (an export size, not a league setting). Incomplete K/DST lines
+are omitted (A-13 / D-88). Entering the sheet into Yahoo is still
+A-7 — this command only produces the list.
+
+```powershell
+.\.venv\Scripts\Activate.ps1
+$env:CI_STATE_DIR = "$env:USERPROFILE\.local\share\ci"
+python -m data pre-rank --out prerank.txt
+```
+
 ### Draft board (manual picks)
 
 Yahoo draft-results polling is out for 6 Sep (D-85 / D-89). Ben
