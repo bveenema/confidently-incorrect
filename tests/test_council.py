@@ -150,6 +150,23 @@ def test_canonicalize_yahoo_api_key() -> None:
     assert canonicalize_player_key("yahoo:999", pool) is None
 
 
+def test_brief_stamps_persona_when_model_echoes_the_wrong_handle() -> None:
+    raw = _brief("belichuk")
+    brief = validate_brief(
+        raw, expected_persona="brand", decision_type="draft", pool=set(POOL)
+    )
+    assert brief.persona == "brand"
+
+
+def test_brief_stamps_persona_when_model_omits_it() -> None:
+    raw = _brief("brand")
+    del raw["persona"]
+    brief = validate_brief(
+        raw, expected_persona="taco", decision_type="draft", pool=set(POOL)
+    )
+    assert brief.persona == "taco"
+
+
 def test_brief_rejects_unknown_player_key() -> None:
     raw = _brief("brand", ["yahoo:999"])
     with pytest.raises(CouncilValidationError, match="unknown"):

@@ -30,12 +30,20 @@ from draft.packet import (
     load_draft_strategy,
     packet_hash,
 )
+from notes.append import load_notes_text
 
 FAILURE_MODEL = "model_failure"
 FAILURE_SUPERSEDED = "superseded"
 GM = "maddox"
 
 CouncilRunner = Callable[..., CouncilResult]
+
+
+def ours_on_the_clock(board: DraftBoard) -> bool:
+    """True when the next overall pick is ours. Not the two-pick snake turn."""
+    if board.complete or board.our_slot is None:
+        return False
+    return board.next_ours() == board.upcoming
 
 
 @dataclass(frozen=True)
@@ -83,11 +91,17 @@ class DraftRecompute:
         self.latest: DraftSlate | None = None
 
     def schedule(self, board: DraftBoard) -> None:
-        """Seed fallback immediately, then start a background council pass."""
+        """Seed fallback immediately. Full panel only when we are on the clock."""
         settings = self._app.settings()
         available = board.available(self._app.pool.players)
         strategy = load_draft_strategy(self._app.root)
-        packet = build_draft_packet(board, settings, available, draft_strategy=strategy)
+        packet = build_draft_packet(
+            board,
+            settings,
+            available,
+            draft_strategy=strategy,
+            notes=load_notes_text(self._app.root) or None,
+        )
         digest = packet_hash(packet)
         fallback = tier_best_available(available)
         with self._lock:
@@ -96,6 +110,8 @@ class DraftRecompute:
             self.latest = _slate_from_players(
                 digest, fallback, source="fallback", run_id=None, failure_mode=None
             )
+        if not ours_on_the_clock(board):
+            return
         thread = threading.Thread(
             target=self._worker,
             args=(gen, board, settings, available, packet, digest, fallback),
