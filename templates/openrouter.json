@@ -1,4 +1,12 @@
 {
-  "_readme": "FAKE VALUE. Copy this file to $CI_STATE_DIR/tokens/openrouter.json and replace api_key. Never put the real key in this templates/ copy. Optional \"models\" object overrides the default OpenRouter slug per persona.",
-  "api_key": "REPLACE_ME"
+  "_readme": "FAKE VALUE. Copy this file to $CI_STATE_DIR/tokens/openrouter.json and replace api_key. Never put the real key in this templates/ copy. models slugs are the code defaults — edit the live copy to override a persona.",
+  "api_key": "REPLACE_ME",
+  "models": {
+    "belichuk": "anthropic/claude-sonnet-4.5",
+    "brand": "openai/gpt-4o",
+    "taco": "deepseek/deepseek-chat",
+    "muskett": "x-ai/grok-4",
+    "maddox": "google/gemini-2.5-pro",
+    "lasso": "google/gemini-2.5-flash"
+  }
 }

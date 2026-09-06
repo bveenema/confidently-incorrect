@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- `templates/openrouter.json` lists the default per-persona OpenRouter
+  slugs so a live copy can override them without reading the code.
 - Council orchestrator (`python -m council run`): OpenRouter key from
   `$CI_STATE_DIR/tokens/openrouter.json`, specialists in parallel,
   brief/GM schema validation (malformed and unknown `player_key`
