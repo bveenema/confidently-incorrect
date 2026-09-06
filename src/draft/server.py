@@ -113,22 +113,22 @@ def handle_request(
         if not raw.isdigit():
             raise DraftConfigError("our draft slot must be an integer")
         board = set_our_slot(board, int(raw))
-        app.persist(board)
         app.notes.after_setup(board)
+        app.persist(board)
         return _Result(303, location=redirect_to("slot saved"))
     if route == "/pick":
         return _handle_pick(app, board, form)
     if route == "/advance":
         board = advance_unnamed(board)
-        app.persist(board)
         if board.complete:
             app.notes.after_complete(board)
+        app.persist(board)
         return _Result(303, location=redirect_to(f"clock → {board.upcoming}"))
     if route == "/undo":
         undone = board.picks[-1] if board.picks else None
         board = undo_last(board)
-        app.persist(board)
         app.notes.after_undo(board, undone)
+        app.persist(board)
         return _Result(303, location=redirect_to("undid last pick"))
     return _Result(404, body="not found")
 
@@ -136,12 +136,12 @@ def handle_request(
 def _commit_player(app: DraftApp, board: DraftBoard, player: Any) -> DraftBoard:
     slate = app.recompute.latest
     board = record_player(board, player)
-    app.persist(board)
     last = board.picks[-1]
     if last.ours and last.kind == "player":
         app.notes.after_our_pick(board, last, slate)
     if board.complete:
         app.notes.after_complete(board)
+    app.persist(board)
     return board
 
 

@@ -27,6 +27,7 @@ from draft.packet import build_draft_packet, packet_hash
 from draft.recompute import DraftRecompute, NullRecompute
 from draft.rehearsal import rehearsal_root
 from draft.server import DraftApp, handle_request
+from notes.append import list_notes
 
 
 def _player(
@@ -222,6 +223,46 @@ def test_each_our_clock_writes_draft_run_with_new_packet_hash(tmp_path: Path) ->
     hashes = [row[0] for row in rows]
     assert len(hashes) >= 2
     assert hashes[-1] != hashes[-2]
+
+
+def test_undo_of_our_pick_omits_retracted_note_from_council_packet(
+    tmp_path: Path,
+) -> None:
+    packets: list[dict[str, object]] = []
+
+    def capture(**kwargs: object) -> CouncilResult:
+        packet = kwargs["packet"]
+        assert isinstance(packet, dict)
+        packets.append(packet)
+        return _ok_runner(**kwargs)
+
+    def lasso(_mode: str, _packet: dict[str, object]) -> str:
+        return "color"
+
+    _snake_settings(tmp_path, team_count=8, rounds=3)
+    app = DraftApp(
+        tmp_path,
+        _pool(),
+        season_id="2026",
+        recompute=NullRecompute(),
+        lasso=lasso,
+    )
+    _wire(app, capture)
+    handle_request(app, "POST", "/setup", "", {"our_slot": "1"})
+    app.recompute.wait_idle()
+    app.notes.wait_idle()
+    handle_request(app, "POST", "/pick", "", {"q": "Alpha"})
+    app.recompute.wait_idle()
+    app.notes.wait_idle()
+    assert any(note.event == "draft-pick" for note in list_notes(tmp_path))
+    packets.clear()
+    handle_request(app, "POST", "/undo", "", {})
+    app.recompute.wait_idle()
+    app.notes.wait_idle()
+    assert packets
+    blob = str(packets[-1].get("notes") or "")
+    assert "Took [[Alpha]]" not in blob
+    assert not any(note.event == "draft-pick" for note in list_notes(tmp_path))
 
 
 def test_other_clock_does_not_call_the_panel(tmp_path: Path) -> None:

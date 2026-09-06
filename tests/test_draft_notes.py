@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import threading
 from pathlib import Path
 
 from tests.test_league_settings import _minimal, _write
@@ -118,6 +119,57 @@ def test_other_picks_and_recompute_do_not_append(tmp_path: Path) -> None:
     app.persist(app.load()[1])
     app.notes.wait_idle()
     assert list_notes(tmp_path) == before
+
+
+def test_undo_retracts_written_close(tmp_path: Path) -> None:
+    _settings(tmp_path, team_count=2, rounds=1)
+    app = DraftApp(
+        tmp_path,
+        _pool(),
+        season_id="2026",
+        recompute=NullRecompute(),
+        lasso=_lasso,
+    )
+    handle_request(app, "POST", "/setup", "", {"our_slot": "2"})
+    handle_request(app, "POST", "/advance", "", {})
+    handle_request(app, "POST", "/pick", "", {"key": "yahoo:1"})
+    app.notes.wait_idle()
+    assert any(note.event == "draft-close" for note in list_notes(tmp_path))
+
+    handle_request(app, "POST", "/undo", "", {})
+    app.notes.wait_idle()
+    assert not any(note.event == "draft-close" for note in list_notes(tmp_path))
+    assert any(note.event == "draft-open" for note in list_notes(tmp_path))
+
+
+def test_late_lasso_close_after_undo_does_not_block_real_close(tmp_path: Path) -> None:
+    release = threading.Event()
+
+    def gated(mode: str, _packet: dict[str, object]) -> str:
+        if mode == "DRAFT_CLOSE":
+            assert release.wait(timeout=2)
+        return f"{mode} note"
+
+    _settings(tmp_path, team_count=2, rounds=1)
+    app = DraftApp(
+        tmp_path,
+        _pool(),
+        season_id="2026",
+        recompute=NullRecompute(),
+        lasso=gated,
+    )
+    handle_request(app, "POST", "/setup", "", {"our_slot": "2"})
+    handle_request(app, "POST", "/advance", "", {})
+    handle_request(app, "POST", "/pick", "", {"key": "yahoo:1"})
+    handle_request(app, "POST", "/undo", "", {})
+    release.set()
+    app.notes.wait_idle()
+    assert not any(note.event == "draft-close" for note in list_notes(tmp_path))
+
+    handle_request(app, "POST", "/pick", "", {"key": "yahoo:1"})
+    app.notes.wait_idle()
+    events = [note.event for note in list_notes(tmp_path)]
+    assert events.count("draft-close") == 1
 
 
 def test_undo_retracts_our_pick_note(tmp_path: Path) -> None:

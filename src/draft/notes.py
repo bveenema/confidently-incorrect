@@ -46,6 +46,7 @@ class DraftNotes:
         self._app = app
         self._lasso = lasso
         self._lock = threading.Lock()
+        self._generation = 0
         self._threads: list[threading.Thread] = []
 
     def after_setup(self, board: DraftBoard) -> None:
@@ -71,11 +72,15 @@ class DraftNotes:
     def after_complete(self, board: DraftBoard) -> None:
         if not board.complete:
             return
-        self._start_lasso("draft-close", board)
+        with self._lock:
+            self._generation += 1
+            gen = self._generation
+        self._start_lasso("draft-close", board, gen)
 
     def after_undo(self, board: DraftBoard, undone: RecordedPick | None) -> None:
         try:
             with self._lock:
+                self._generation += 1
                 if undone is not None and undone.ours and undone.kind == "player":
                     retract_note(
                         self._app.root, event="draft-pick", overall=undone.overall
@@ -89,18 +94,22 @@ class DraftNotes:
         for thread in list(self._threads):
             thread.join(timeout)
 
-    def _start_lasso(self, event: str, board: DraftBoard) -> None:
+    def _start_lasso(
+        self, event: str, board: DraftBoard, gen: int | None = None
+    ) -> None:
         mode = "DRAFT_OPEN" if event == "draft-open" else "DRAFT_CLOSE"
         thread = threading.Thread(
             target=self._lasso_worker,
-            args=(event, mode, board),
+            args=(event, mode, board, gen),
             daemon=True,
             name=f"draft-lasso-{event}",
         )
         self._threads.append(thread)
         thread.start()
 
-    def _lasso_worker(self, event: str, mode: str, board: DraftBoard) -> None:
+    def _lasso_worker(
+        self, event: str, mode: str, board: DraftBoard, gen: int | None
+    ) -> None:
         try:
             packet = self._packet(board)
             text = self._run_lasso(mode, packet)
@@ -110,6 +119,8 @@ class DraftNotes:
             return
         try:
             with self._lock:
+                if event == "draft-close" and gen != self._generation:
+                    return
                 append_note(
                     self._app.root,
                     persona="lasso",
