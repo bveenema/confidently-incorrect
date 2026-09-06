@@ -30,6 +30,7 @@ from draft.packet import (
     load_draft_strategy,
     packet_hash,
 )
+from notes.append import load_notes_text
 
 FAILURE_MODEL = "model_failure"
 FAILURE_SUPERSEDED = "superseded"
@@ -87,7 +88,13 @@ class DraftRecompute:
         settings = self._app.settings()
         available = board.available(self._app.pool.players)
         strategy = load_draft_strategy(self._app.root)
-        packet = build_draft_packet(board, settings, available, draft_strategy=strategy)
+        packet = build_draft_packet(
+            board,
+            settings,
+            available,
+            draft_strategy=strategy,
+            notes=load_notes_text(self._app.root) or None,
+        )
         digest = packet_hash(packet)
         fallback = tier_best_available(available)
         with self._lock:

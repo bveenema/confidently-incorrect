@@ -23,6 +23,7 @@ from draft.board import (
 from draft.errors import DraftConfigError, DraftError
 from draft.io import load_board, save_board
 from draft.match import find_by_key, match_players
+from draft.notes import DraftNotes, NullNotes
 from draft.page import redirect_to, render_page
 from draft.recompute import DraftRecompute, NullRecompute
 
@@ -51,6 +52,8 @@ class DraftApp:
         rehearsal: bool = False,
         season_id: str = "2026",
         recompute: DraftRecompute | NullRecompute | None = None,
+        notes: DraftNotes | NullNotes | None = None,
+        lasso: Any | None = None,
     ) -> None:
         self.root = root
         self.pool = pool
@@ -59,6 +62,9 @@ class DraftApp:
         self.lock = threading.Lock()
         self.recompute: DraftRecompute | NullRecompute = (
             recompute if recompute is not None else DraftRecompute(self)
+        )
+        self.notes: DraftNotes | NullNotes = (
+            notes if notes is not None else DraftNotes(self, lasso=lasso)
         )
 
     def settings(self) -> LeagueSettings:
@@ -108,18 +114,35 @@ def handle_request(
             raise DraftConfigError("our draft slot must be an integer")
         board = set_our_slot(board, int(raw))
         app.persist(board)
+        app.notes.after_setup(board)
         return _Result(303, location=redirect_to("slot saved"))
     if route == "/pick":
         return _handle_pick(app, board, form)
     if route == "/advance":
         board = advance_unnamed(board)
         app.persist(board)
+        if board.complete:
+            app.notes.after_complete(board)
         return _Result(303, location=redirect_to(f"clock → {board.upcoming}"))
     if route == "/undo":
+        undone = board.picks[-1] if board.picks else None
         board = undo_last(board)
         app.persist(board)
+        app.notes.after_undo(board, undone)
         return _Result(303, location=redirect_to("undid last pick"))
     return _Result(404, body="not found")
+
+
+def _commit_player(app: DraftApp, board: DraftBoard, player: Any) -> DraftBoard:
+    slate = app.recompute.latest
+    board = record_player(board, player)
+    app.persist(board)
+    last = board.picks[-1]
+    if last.ours and last.kind == "player":
+        app.notes.after_our_pick(board, last, slate)
+    if board.complete:
+        app.notes.after_complete(board)
+    return board
 
 
 def _handle_pick(app: DraftApp, board: DraftBoard, form: dict[str, str]) -> _Result:
@@ -129,8 +152,7 @@ def _handle_pick(app: DraftApp, board: DraftBoard, form: dict[str, str]) -> _Res
         player = find_by_key(app.pool.players, key)
         if player is None:
             raise DraftConfigError("that player is not in the pool")
-        board = record_player(board, player)
-        app.persist(board)
+        _commit_player(app, board, player)
         return _Result(303, location=redirect_to(f"recorded {player.name}"))
     available = board.available(app.pool.players)
     matches = match_players(available, query)
@@ -142,8 +164,7 @@ def _handle_pick(app: DraftApp, board: DraftBoard, form: dict[str, str]) -> _Res
         raise DraftConfigError(f"no pool match for {query!r}")
     if len(matches) == 1:
         player = matches[0]
-        board = record_player(board, player)
-        app.persist(board)
+        _commit_player(app, board, player)
         return _Result(303, location=redirect_to(f"recorded {player.name}"))
     settings = app.settings()
     html = render_page(

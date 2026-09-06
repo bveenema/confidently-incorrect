@@ -58,6 +58,7 @@ def build_draft_packet(
     available: Sequence[PooledPlayer],
     *,
     draft_strategy: Any | None = None,
+    notes: str | None = None,
 ) -> dict[str, Any]:
     clock = board.on_the_clock()
     ours = board.next_ours()
@@ -98,6 +99,8 @@ def build_draft_packet(
     }
     if draft_strategy is not None:
         packet["draft_strategy"] = draft_strategy
+    if notes:
+        packet["notes"] = notes
     return packet
 
 

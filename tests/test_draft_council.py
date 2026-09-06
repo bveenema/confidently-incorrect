@@ -22,6 +22,7 @@ from db import connect
 from draft.__main__ import main
 from draft.errors import DraftConfigError
 from draft.fallback import tier_best_available
+from draft.notes import NullNotes
 from draft.packet import build_draft_packet, packet_hash
 from draft.recompute import DraftRecompute, NullRecompute
 from draft.rehearsal import rehearsal_root
@@ -160,6 +161,7 @@ def _ready(tmp_path: Path, *, runner=_ok_runner, rehearsal: bool = False) -> Dra
         rehearsal=rehearsal,
         season_id="2026",
         recompute=NullRecompute(),
+        notes=NullNotes(),
     )
     return _wire(app, runner)
 
