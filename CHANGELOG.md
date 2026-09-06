@@ -8,6 +8,8 @@
 - Specialist briefs stamp `persona` from the invoked handle. A wrong
   or missing name in the model JSON no longer drops the brief
   (D-103 / issue 59).
+- Draft council runs only when we are on the clock. Other picks keep
+  the tier fallback slate and do not call the models (D-104).
 - Pre-rank export (`python -m data pre-rank`): top ~200 by league
   scoring as CSV `rank,name,team,position` for Yahoo's Import
   Rankings dialog. Snapshot-first, `--refresh` rebuilds without

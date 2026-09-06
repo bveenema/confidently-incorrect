@@ -66,9 +66,9 @@ PLAYERS = tuple(
 )
 
 
-def _snake_settings(tmp_path: Path, team_count: int = 8) -> Path:
+def _snake_settings(tmp_path: Path, team_count: int = 8, rounds: int = 3) -> Path:
     payload = _minimal(team_count)
-    payload["draft"] = {"rounds": 3, "type": "snake"}
+    payload["draft"] = {"rounds": rounds, "type": "snake"}
     payload["roster_slots"] = [
         {"position": "QB", "count": 1},
         {"position": "RB", "count": 2},
@@ -153,8 +153,15 @@ def _wire(app: DraftApp, runner=_ok_runner) -> DraftApp:
     return app
 
 
-def _ready(tmp_path: Path, *, runner=_ok_runner, rehearsal: bool = False) -> DraftApp:
-    _snake_settings(tmp_path)
+def _ready(
+    tmp_path: Path,
+    *,
+    runner=_ok_runner,
+    rehearsal: bool = False,
+    team_count: int = 8,
+    rounds: int = 3,
+) -> DraftApp:
+    _snake_settings(tmp_path, team_count=team_count, rounds=rounds)
     app = DraftApp(
         tmp_path,
         _pool(),
@@ -197,9 +204,9 @@ def test_rehearsal_banner_and_writes_land_in_state_dir(
     assert n >= 1
 
 
-def test_each_pick_writes_draft_run_with_new_packet_hash(tmp_path: Path) -> None:
-    app = _ready(tmp_path)
-    handle_request(app, "POST", "/setup", "", {"our_slot": "1"})
+def test_each_our_clock_writes_draft_run_with_new_packet_hash(tmp_path: Path) -> None:
+    app = _ready(tmp_path, team_count=2, rounds=2)
+    handle_request(app, "POST", "/setup", "", {"our_slot": "2"})
     handle_request(app, "POST", "/pick", "", {"q": "Alpha"})
     app.recompute.wait_idle()
     handle_request(app, "POST", "/pick", "", {"q": "Bravo"})
@@ -217,6 +224,25 @@ def test_each_pick_writes_draft_run_with_new_packet_hash(tmp_path: Path) -> None
     assert hashes[-1] != hashes[-2]
 
 
+def test_other_clock_does_not_call_the_panel(tmp_path: Path) -> None:
+    calls = {"n": 0}
+
+    def counting(**kwargs: object) -> CouncilResult:
+        calls["n"] += 1
+        return _ok_runner(**kwargs)
+
+    app = _ready(tmp_path, runner=counting, team_count=2, rounds=2)
+    handle_request(app, "POST", "/setup", "", {"our_slot": "2"})
+    app.recompute.wait_idle()
+    assert calls["n"] == 0
+    assert app.recompute.latest is not None
+    assert app.recompute.latest.source == "fallback"
+    assert not (tmp_path / "kb.db").exists()
+    handle_request(app, "POST", "/pick", "", {"q": "Alpha"})
+    app.recompute.wait_idle()
+    assert calls["n"] == 1
+
+
 def test_in_flight_recompute_is_superseded(tmp_path: Path) -> None:
     started = threading.Event()
     release = threading.Event()
@@ -228,12 +254,13 @@ def test_in_flight_recompute_is_superseded(tmp_path: Path) -> None:
         calls.append(str(kwargs["packet_hash"]))
         return _ok_runner(**kwargs)
 
-    app = _ready(tmp_path, runner=slow)
-    handle_request(app, "POST", "/setup", "", {"our_slot": "1"})
+    app = _ready(tmp_path, runner=slow, team_count=2, rounds=2)
+    handle_request(app, "POST", "/setup", "", {"our_slot": "2"})
+    handle_request(app, "POST", "/pick", "", {"q": "Alpha"})
     assert started.wait(timeout=2)
     started.clear()
     first_hash = app.recompute.latest.packet_hash if app.recompute.latest else ""
-    handle_request(app, "POST", "/pick", "", {"q": "Alpha"})
+    handle_request(app, "POST", "/pick", "", {"q": "Bravo"})
     assert started.wait(timeout=2)
     release.set()
     app.recompute.wait_idle()
@@ -253,11 +280,12 @@ def test_pick_post_returns_while_model_is_in_flight(tmp_path: Path) -> None:
         assert release.wait(timeout=2)
         return _ok_runner(**kwargs)
 
-    app = _ready(tmp_path, runner=slow)
-    handle_request(app, "POST", "/setup", "", {"our_slot": "1"})
+    app = _ready(tmp_path, runner=slow, team_count=2, rounds=2)
+    handle_request(app, "POST", "/setup", "", {"our_slot": "2"})
+    handle_request(app, "POST", "/pick", "", {"q": "Alpha"})
     started.wait(timeout=2)
     started.clear()
-    posted = handle_request(app, "POST", "/pick", "", {"q": "Alpha"})
+    posted = handle_request(app, "POST", "/pick", "", {"q": "Bravo"})
     assert posted.status == 303
     assert started.wait(timeout=2)
     assert not release.is_set()
@@ -275,7 +303,6 @@ def test_model_failure_falls_through_to_tiers(tmp_path: Path) -> None:
 
     app = _ready(tmp_path, runner=boom)
     handle_request(app, "POST", "/setup", "", {"our_slot": "1"})
-    handle_request(app, "POST", "/pick", "", {"q": "Alpha"})
     app.recompute.wait_idle()
     latest = app.recompute.latest
     assert latest is not None
@@ -283,8 +310,7 @@ def test_model_failure_falls_through_to_tiers(tmp_path: Path) -> None:
     assert latest.failure_mode == "gm_missing"
     assert len(latest.items) >= 5
     got = {item.player_key for item in latest.items}
-    assert "yahoo:1" not in got
-    assert got == {f"yahoo:{i}" for i in range(2, 7)}
+    assert got == {f"yahoo:{i}" for i in range(1, 6)}
     with connect(tmp_path) as conn:
         modes = [
             row[0]

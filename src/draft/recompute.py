@@ -39,6 +39,13 @@ GM = "maddox"
 CouncilRunner = Callable[..., CouncilResult]
 
 
+def ours_on_the_clock(board: DraftBoard) -> bool:
+    """True when the next overall pick is ours. Not the two-pick snake turn."""
+    if board.complete or board.our_slot is None:
+        return False
+    return board.next_ours() == board.upcoming
+
+
 @dataclass(frozen=True)
 class SlateItem:
     rank: int
@@ -84,7 +91,7 @@ class DraftRecompute:
         self.latest: DraftSlate | None = None
 
     def schedule(self, board: DraftBoard) -> None:
-        """Seed fallback immediately, then start a background council pass."""
+        """Seed fallback immediately. Full panel only when we are on the clock."""
         settings = self._app.settings()
         available = board.available(self._app.pool.players)
         strategy = load_draft_strategy(self._app.root)
@@ -103,6 +110,8 @@ class DraftRecompute:
             self.latest = _slate_from_players(
                 digest, fallback, source="fallback", run_id=None, failure_mode=None
             )
+        if not ours_on_the_clock(board):
+            return
         thread = threading.Thread(
             target=self._worker,
             args=(gen, board, settings, available, packet, digest, fallback),
