@@ -131,6 +131,23 @@ Passing/Rushing/Receiving/Kicking/DST stats map onto engine slugs.
 Kicker lines are `fg`/`fga`/`pat_*` only (no distance bands). DST has
 no return yards. Attribution is `data.TANK01_ATTRIBUTION`.
 
+### OpenRouter (council)
+
+Copy [`templates/openrouter.json`](templates/openrouter.json) to
+`$CI_STATE_DIR/tokens/openrouter.json` and replace `api_key`. Never
+put the real key in the repo. Optional `models` object overrides the
+default OpenRouter slug per persona (`belichuk`, `brand`, `taco`,
+`muskett`, `maddox`, `lasso`).
+
+`python -m council run --packet PACKET.json --pool POOL.json`
+runs Belichuk/Brand/Taco in parallel (draft default), then Maddox,
+validates every `player_key` against the pool, and writes `runs` +
+`briefs` (+ `decisions` on success) to `$CI_STATE_DIR/kb.db`.
+`--state-dir` isolates rehearsal (D-90 / D-92). `--pool` is a JSON
+array of player keys (the draft board uses `yahoo:{id}`). A missing
+specialist is recorded and the run continues; a missing GM exits 1
+and still writes the `runs` row.
+
 ### Player pool (merge, tiers, ADP)
 
 `python -m data player-pool` scores both season-long sources with the

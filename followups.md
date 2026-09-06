@@ -43,6 +43,7 @@ Ten days. These gate the draft working at all.
 | A-18 | ☐ | Rehearsal-mode isolation: `--state-dir` never points at the real runtime root | A mock run in the live root pollutes `kb.db` and `notes/` before the draft starts | Run `python -m draft serve --state-dir <temp>` and confirm banner + writes land there; run the explicit rejection case against the real root | |
 | A-19 | ☐ | Post-draft backup copy + name leak check | Draft-night attribution is unrecoverable state. A backup without a leak scan can still block publication later | Immediately after draft, copy `kb.db` and `notes/` off the machine that ran non-rehearsal; grep backup for real manager/team names | |
 | A-20 | ☐ | No pre-draft council debate path for autopick sheet or `strategy.json` | Current plan logs per-pick council output but not "why this pre-rank order / strategy mode" before the room opens | Decide whether to add a pre-draft council run type this season or defer to post-season analysis | |
+| A-21 | ☐ | Live OpenRouter draft-panel smoke: default model slugs return parseable briefs | Default slugs in `council.credentials.DEFAULT_MODELS` will rot; a 404/400 here is a silent missing-specialist on draft night | `python -m council run --packet <tiny.json> --pool <five keys> --state-dir <temp> --decision-type draft` with a real key copied from the token file into that temp dir (do not point rehearsal at the live root) | |
 
 ---
 

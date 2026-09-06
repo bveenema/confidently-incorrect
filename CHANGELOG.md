@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- Council orchestrator (`python -m council run`): OpenRouter key from
+  `$CI_STATE_DIR/tokens/openrouter.json`, specialists in parallel,
+  brief/GM schema validation (malformed and unknown `player_key`
+  rejected, not retried), per-call model/tokens/cost on `briefs`,
+  `runs` + `decisions` on success, `failure_mode` when the GM is
+  missing or invalid. Draft panel is Belichuk/Brand/Taco → Maddox.
+  `considered_options` stays issue 12.
 - kb.db ledger schema and `python -m db migrate`: ten tables from
   architecture §7, `season_id` on runs/deploys/config_changes (D-74),
   WAL connections, failed-run `failure_mode` (D-63). Runtime file is
