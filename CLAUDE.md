@@ -78,6 +78,9 @@ Quality gates for `/ship`: `make lint` and `make test` must pass.
   does not deploy. Do not wire deployment into the ship phase.
 - **After week 1 begins**, no deploys Thu 17:00 – Mon 23:59 ET, and
   persona prompts are frozen for the season. See `.ai/rules.md` §3.
+- **GitHub writing is two sections** (`## What this means` then
+  `## Details`) on every PR, issue, comment, and issue/PR reply.
+  See `.ai/rules.md` §9.
 
 ## Worktrees
 

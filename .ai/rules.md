@@ -126,6 +126,8 @@ These are not preferences.
   failure mode this system is most vulnerable to.
 - **Never ping the dead-man switch on process start.** Only after a
   confirmed successful submission.
+- **Never publish a GitHub PR, issue, comment, or issue reply
+  without both writing sections.** See §9.
 
 ---
 
@@ -185,3 +187,38 @@ These are not preferences.
 - [ ] Did this write to the real `$CI_STATE_DIR` / `/srv/ci/` without
       an explicit ask that named the file?
 - [ ] Was it actually run, or does it just look correct?
+- [ ] If this wrote a GitHub PR, issue, or comment, does it have both
+      §9 sections?
+
+---
+
+## 9. GitHub writing is two sections
+
+Every GitHub artifact an agent writes — pull request body, new issue,
+issue comment, review comment, and any reply on an issue or PR — has
+exactly these two sections, in this order, with these headings:
+
+```
+## What this means
+## Details
+```
+
+**What this means** is for a human who does not live in this repo.
+No file paths, no decision numbers, no table or flag names, no
+command lines, unless that human must type them to do a thing. Short
+sentences. What changed, what they should do, what can wait.
+
+**Details** is the follow-up: paths, decision IDs, commands, schema
+names, acceptance criteria, assumptions, quality gates, and known
+limitations. Hephaestus `/ship` sections (Assumptions Made, Quality
+gates, Known Limitations) go here, not in the first section.
+
+Rules:
+
+- Neither section may be empty.
+- The first section must still make sense if the second is unread.
+- Chat replies in the editor are not GitHub artifacts and are not
+  covered. Commit messages are not covered.
+- Exempt: a one-line close or ship pointer that only names a PR or
+  issue number (e.g. `Shipped in PR #55.`). Anything longer is not
+  exempt.

@@ -26,6 +26,8 @@ Never:
 - Ping the dead-man switch on process start
 - Touch `/srv/ci/` with a git command
 - Deploy by improvising SSH instead of `deploy.sh`
+- Publish a GitHub PR, issue, or comment without both §9 sections
+  (`.ai/rules.md`)
 
 Docs are the spec. Append to the decision log; never edit an old
 entry to match new behaviour. New unknowns go in `followups.md`.
