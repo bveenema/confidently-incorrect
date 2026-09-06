@@ -310,7 +310,6 @@ BRIEF_SCHEMA_REMINDER = """\
 Return exactly this JSON object. No prose outside it.
 
 {
-  "persona": "<your handle: belichuk | brand | taco | muskett>",
   "decision_type": "lineup | waiver | trade | draft",
   "recommendations": [
     {

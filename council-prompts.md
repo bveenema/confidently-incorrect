@@ -35,6 +35,9 @@ Every specialist returns exactly this object. No prose outside it.
 
 Field notes:
 
+- `persona` — stamped by the orchestrator from the invoked handle
+  (D-103 / issue 59). The model may still emit the field; a missing
+  or wrong value is overwritten, not rejected.
 - `confidence` — 0.0 to 1.0. Used by the GM to weight close calls.
   Personas differ in how they calibrate; that is intentional.
 - `reasoning` — must be substantive and literal. This is what the GM

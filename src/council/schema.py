@@ -118,13 +118,11 @@ def validate_brief(
     decision_type: str,
     pool: set[str],
 ) -> Brief:
-    persona = _require_str(raw, "persona")
-    if persona != expected_persona:
-        raise CouncilValidationError(
-            f"brief persona {persona!r} does not match {expected_persona}"
-        )
-    if persona not in PERSONAS:
-        raise CouncilValidationError(f"unknown persona {persona!r}")
+    # Stamp from the invocation. Models echo the wrong handle often
+    # enough that trusting raw["persona"] empties the panel (D-103).
+    if expected_persona not in PERSONAS:
+        raise CouncilValidationError(f"unknown persona {expected_persona!r}")
+    persona = expected_persona
     dtype = _require_str(raw, "decision_type")
     if dtype != decision_type:
         raise CouncilValidationError(
