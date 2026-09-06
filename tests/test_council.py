@@ -89,6 +89,7 @@ def _handler(
     *,
     status: dict[str, int] | None = None,
     seen: list[str] | None = None,
+    systems: list[str] | None = None,
 ):
     codes = status or {}
 
@@ -98,6 +99,10 @@ def _handler(
         persona = PERSONA_FOR_MODEL.get(model, "unknown")
         if seen is not None:
             seen.append(persona)
+        if systems is not None:
+            messages = payload.get("messages") or []
+            if messages:
+                systems.append(str(messages[0].get("content", "")))
         code = codes.get(persona, 200)
         if code >= 400:
             return httpx.Response(code, json={"error": "upstream"})
@@ -267,6 +272,11 @@ def test_missing_gm_fails_and_writes_failure_mode(tmp_path: Path) -> None:
     assert mode == "gm_missing"
     assert count == 4
     assert decisions == 0
+    with connect(tmp_path) as conn:
+        reason = conn.execute(
+            "SELECT reasoning FROM briefs WHERE persona = 'maddox'"
+        ).fetchone()[0]
+    assert reason and "OpenRouter HTTP 500" in reason
 
 
 def test_invalid_gm_writes_failure_mode(tmp_path: Path) -> None:
@@ -354,6 +364,50 @@ def test_validate_gm_unknown_key() -> None:
     raw = _gm(["yahoo:999"] + POOL[:4])
     with pytest.raises(CouncilValidationError, match="live pool"):
         validate_gm(raw, decision_type="draft", pool=set(POOL))
+
+
+def test_packet_team_count_reaches_prompts(tmp_path: Path) -> None:
+    systems: list[str] = []
+    client = _client(tmp_path, _handler(_ok_bodies(), systems=systems))
+    run_council(
+        state_dir=tmp_path,
+        packet={"pick": 1, "team_count": 8},
+        pool=POOL,
+        decision_type="draft",
+        season_id="2026",
+        client=client,
+    )
+    assert systems
+    assert all("8-team" in text for text in systems)
+    assert all("12-team" not in text for text in systems)
+    gm_prompts = [
+        text for text in systems if "You make the final call on every decision" in text
+    ]
+    assert gm_prompts
+    assert all("You advise. You do not decide." not in text for text in gm_prompts)
+
+
+def test_internal_error_marks_failed_run(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    client = _client(tmp_path, _handler(_ok_bodies()))
+
+    def boom(*_args, **_kwargs):
+        raise RuntimeError("ledger write failed")
+
+    monkeypatch.setattr("council.orchestrator.insert_brief_row", boom)
+    with pytest.raises(RuntimeError, match="ledger write failed"):
+        run_council(
+            state_dir=tmp_path,
+            packet={"pick": 1},
+            pool=POOL,
+            decision_type="draft",
+            season_id="2026",
+            client=client,
+        )
+    with connect(tmp_path) as conn:
+        mode = conn.execute("SELECT failure_mode FROM runs").fetchone()[0]
+    assert mode == "internal_error"
 
 
 def test_gm_system_is_not_the_specialist_preamble() -> None:
