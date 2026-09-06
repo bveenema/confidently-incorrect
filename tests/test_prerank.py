@@ -127,6 +127,12 @@ def test_select_rejects_empty_and_bad_limit() -> None:
         select_prerank(pool, limit=0)
 
 
+def test_format_quotes_names_with_commas() -> None:
+    pool = _pool(_player("Chase, Ja'Marr", value_rank=1, position="WR", team="CIN"))
+    text = format_prerank(select_prerank(pool))
+    assert '1,"Chase, Ja\'Marr",CIN,WR' in text
+
+
 def test_format_is_numbered_and_says_not_adp() -> None:
     pool = _pool(
         _player("Late ADP Star", value_rank=1, adp=40.0),
@@ -139,15 +145,13 @@ def test_format_is_numbered_and_says_not_adp() -> None:
             scoring_incomplete=True,
         ),
     )
-    text = format_prerank(select_prerank(pool), pool)
-    assert "not published ADP" in text
-    assert "omitted_incomplete=1" in text
-    assert "1\tLate ADP Star\tQB\tBUF" in text
-    assert "2\tEarly ADP Role\tQB\tBUF" in text
-    body = "\n".join(line for line in text.splitlines() if not line.startswith("#"))
-    assert "Boot" not in body
-    assert "40.0" not in body
-    assert "2.0" not in body
+    text = format_prerank(select_prerank(pool))
+    assert text.splitlines()[0] == "rank,name,team,position"
+    assert "1,Late ADP Star,BUF,QB" in text
+    assert "2,Early ADP Role,BUF,QB" in text
+    assert "Boot" not in text
+    assert "40.0" not in text
+    assert "2.0" not in text
 
 
 def test_cli_pool_stdout_and_out(
@@ -160,15 +164,16 @@ def test_cli_pool_stdout_and_out(
     snap = _snapshot(tmp_path / "player-pool.json", pool)
     assert main(["pre-rank", "--pool", str(snap), "--limit", "1"]) == 0
     out = capsys.readouterr().out
-    assert "1\tLate ADP Star\tQB\tBUF" in out
+    assert "1,Late ADP Star,BUF,QB" in out
     assert "Early ADP Role" not in out
 
-    dest = tmp_path / "sheet.txt"
+    dest = tmp_path / "sheet.csv"
     assert main(["pre-rank", "--pool", str(snap), "--out", str(dest)]) == 0
     status = capsys.readouterr().out
     assert "ok: wrote" in status
-    assert dest.read_text(encoding="utf-8").startswith("# Pre-rank sheet")
-    assert "2\tEarly ADP Role\tQB\tBUF" in dest.read_text(encoding="utf-8")
+    written = dest.read_text(encoding="utf-8")
+    assert written.startswith("rank,name,team,position")
+    assert "2,Early ADP Role,BUF,QB" in written
 
 
 def test_cli_uses_state_dir_snapshot(
@@ -178,7 +183,39 @@ def test_cli_uses_state_dir_snapshot(
     _snapshot(tmp_path / "player-pool.json", pool)
     monkeypatch.setenv("CI_STATE_DIR", str(tmp_path))
     assert main(["pre-rank"]) == 0
-    assert "1\tAlpha\tQB\tBUF" in capsys.readouterr().out
+    assert "1,Alpha,BUF,QB" in capsys.readouterr().out
+
+
+def test_cli_refresh_does_not_write_snapshot(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    stale = _pool(_player("Stale", value_rank=1))
+    snap = _snapshot(tmp_path / "player-pool.json", stale)
+    before = snap.read_text(encoding="utf-8")
+    monkeypatch.setenv("CI_STATE_DIR", str(tmp_path))
+
+    class _CM:
+        def __init__(self, *args: object, **kwargs: object) -> None:
+            pass
+
+        def __enter__(self) -> object:
+            return self
+
+        def __exit__(self, *args: object) -> bool:
+            return False
+
+    live = _pool(_player("Fresh", value_rank=1))
+    monkeypatch.setattr("data.__main__.FantasyProsClient", _CM)
+    monkeypatch.setattr("data.__main__.Tank01Client", _CM)
+    monkeypatch.setattr("data.__main__.load_league_settings", lambda: object())
+    monkeypatch.setattr(
+        "data.__main__.load_player_pool", lambda *args, **kwargs: live
+    )
+    assert main(["pre-rank", "--refresh", "--season", "2026"]) == 0
+    out = capsys.readouterr().out
+    assert "1,Fresh,BUF,QB" in out
+    assert "Stale" not in out
+    assert snap.read_text(encoding="utf-8") == before
 
 
 def test_cli_missing_pool_fails(

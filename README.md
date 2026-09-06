@@ -162,9 +162,10 @@ players.
 
 ### Pre-rank sheet (Yahoo manual entry)
 
-Yahoo has no pre-rank API. `python -m data pre-rank` prints the top 200
-complete-scoring players in **our** league order (not ADP) as a
-numbered list you paste or type into Yahoo's pre-draft rankings.
+Yahoo has no pre-rank API. `python -m data pre-rank` writes the top 200
+complete-scoring players in **our** league order (not ADP) as a CSV
+(`rank,name,team,position`) for Yahoo's Import Rankings dialog. The
+dialog matches on **name**.
 
 Uses `$CI_STATE_DIR/player-pool.json` when that snapshot exists
 (same file `draft serve` writes). `--pool PATH` selects a snapshot.
@@ -177,7 +178,7 @@ A-7 — this command only produces the list.
 ```powershell
 .\.venv\Scripts\Activate.ps1
 $env:CI_STATE_DIR = "$env:USERPROFILE\.local\share\ci"
-python -m data pre-rank --out prerank.txt
+python -m data pre-rank --out prerank.csv
 ```
 
 ### Draft board (manual picks)

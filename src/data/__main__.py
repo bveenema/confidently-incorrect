@@ -205,7 +205,7 @@ def _pre_rank(
     try:
         pool = _resolve_prerank_pool(year, pool_path, refresh)
         rows = select_prerank(pool, limit)
-        text = format_prerank(rows, pool)
+        text = format_prerank(rows)
         if out is None:
             print(text)
             return 0
@@ -216,7 +216,11 @@ def _pre_rank(
     except DataError as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 1
-    print(f"ok: wrote {out} ({len(rows)} players)")
+    omitted = sum(1 for player in pool.players if player.scoring_incomplete)
+    print(
+        f"ok: wrote {out} ({len(rows)} players, "
+        f"season={pool.season} omitted_incomplete={omitted})"
+    )
     return 0
 
 

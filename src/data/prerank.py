@@ -1,10 +1,13 @@
 """Pre-rank cheat sheet for Yahoo manual entry.
 
-Issue 13 / D-100. Order is league-scored value_rank (D-88), not ADP.
-There is no Yahoo ranking API — Ben pastes this list by hand (A-7).
+Issue 13 / D-100 / D-101. Order is league-scored value_rank (D-88), not ADP.
+Yahoo's import dialog matches on player name from a CSV.
 """
 
 from __future__ import annotations
+
+import csv
+import io
 
 from data.errors import DataConfigError
 from data.pool import PlayerPool, PooledPlayer
@@ -28,16 +31,15 @@ def select_prerank(
     return ranked[:limit]
 
 
-def format_prerank(rows: tuple[PooledPlayer, ...], pool: PlayerPool) -> str:
-    """Numbered TSV: rank, name, position, team. Header states league scoring."""
-    omitted = sum(1 for player in pool.players if player.scoring_incomplete)
-    lines = [
-        "# Pre-rank sheet — enter top to bottom in Yahoo (no API)",
-        "# Ordered by this league's scoring, not published ADP",
-        f"# season={pool.season} listed={len(rows)} "
-        f"omitted_incomplete={omitted} adp_scoring={pool.adp_scoring}",
-        "# Incomplete K/DST are omitted — provider lines cannot score this league.",
-    ]
+def format_prerank(rows: tuple[PooledPlayer, ...]) -> str:
+    """CSV for Yahoo Import Rankings: rank,name,team,position.
+
+    Name is the match key. No comment lines — the dialog treats the
+    first row as a header.
+    """
+    buf = io.StringIO()
+    writer = csv.writer(buf, lineterminator="\n")
+    writer.writerow(["rank", "name", "team", "position"])
     for player in rows:
         rank = player.value_rank
         if rank is None:
@@ -45,5 +47,5 @@ def format_prerank(rows: tuple[PooledPlayer, ...], pool: PlayerPool) -> str:
                 f"pre-rank row {player.name!r} has no value_rank; "
                 "select_prerank must only return ranked players"
             )
-        lines.append(f"{rank}\t{player.name}\t{player.position}\t{player.team}")
-    return "\n".join(lines)
+        writer.writerow([rank, player.name, player.team, player.position])
+    return buf.getvalue().rstrip("\n")

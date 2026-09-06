@@ -174,9 +174,9 @@ the keyboard entry path on day 7 if so.
 
 ### Day 9 — Pre-rank sheet
 
-Generate top ~200 by our scoring (`python -m data pre-rank`), enter
-manually into Yahoo's pre-rank tool. No API for this. Budget 60-90
-minutes of tedium.
+Generate top ~200 by our scoring (`python -m data pre-rank --out
+prerank.csv`) and upload the CSV in Yahoo's Import Rankings dialog.
+No ranking API. Name-match misses are added by hand.
 
 Worth doing even if the live tool works perfectly. It is the net that
 catches a dropped connection at pick 4.

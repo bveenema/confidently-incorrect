@@ -3,9 +3,10 @@
 ## Unreleased
 
 - Pre-rank export (`python -m data pre-rank`): top ~200 by league
-  scoring as a numbered TSV for Yahoo manual entry. Snapshot-first,
-  `--refresh` rebuilds without writing state, incomplete K/DST omitted
-  (D-100 / issue 13). A-7 stays open until the sheet is entered.
+  scoring as CSV `rank,name,team,position` for Yahoo's Import
+  Rankings dialog. Snapshot-first, `--refresh` rebuilds without
+  writing state, incomplete K/DST omitted (D-100 / D-101 / issue 13).
+  A-7 stays open until the sheet is entered.
 - GitHub PRs, issues, comments, and issue replies from agents must
   open with a jargon-free "What this means" section, then a "Details"
   section (`.ai/rules.md` §9 / D-99).
