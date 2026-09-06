@@ -24,6 +24,7 @@ from draft.errors import DraftConfigError, DraftError
 from draft.io import load_board, save_board
 from draft.match import find_by_key, match_players
 from draft.page import redirect_to, render_page
+from draft.recompute import DraftRecompute, NullRecompute
 
 
 @dataclass(frozen=True)
@@ -42,10 +43,23 @@ def require_snake(settings: LeagueSettings) -> None:
 
 
 class DraftApp:
-    def __init__(self, root: Path, pool: PlayerPool) -> None:
+    def __init__(
+        self,
+        root: Path,
+        pool: PlayerPool,
+        *,
+        rehearsal: bool = False,
+        season_id: str = "2026",
+        recompute: DraftRecompute | NullRecompute | None = None,
+    ) -> None:
         self.root = root
         self.pool = pool
+        self.rehearsal = rehearsal
+        self.season_id = season_id
         self.lock = threading.Lock()
+        self.recompute: DraftRecompute | NullRecompute = (
+            recompute if recompute is not None else DraftRecompute(self)
+        )
 
     def settings(self) -> LeagueSettings:
         settings = load_league_settings(self.root)
@@ -59,6 +73,7 @@ class DraftApp:
 
     def persist(self, board: DraftBoard) -> None:
         save_board(self.root, board)
+        self.recompute.schedule(board)
 
 
 def handle_request(
@@ -80,6 +95,8 @@ def handle_request(
             available=board.available(app.pool.players),
             message=message,
             query=typed,
+            rehearsal=app.rehearsal,
+            slate=app.recompute.latest,
         )
         return _Result(200, body=html)
     if method != "POST":
@@ -136,6 +153,8 @@ def _handle_pick(app: DraftApp, board: DraftBoard, form: dict[str, str]) -> _Res
         message="several matches — pick one",
         candidates=matches,
         query=query,
+        rehearsal=app.rehearsal,
+        slate=app.recompute.latest,
     )
     return _Result(200, body=html)
 

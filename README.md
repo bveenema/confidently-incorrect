@@ -179,6 +179,10 @@ clicks in the Yahoo room and records each pick on a local page.
    it runs. Later boots reuse that snapshot. `--refresh` rebuilds it.
    `--season` defaults to the current year in `America/New_York`.
    `draft.type` must be `"snake"`.
+   For a mock, pass `--state-dir PATH` at a temp root (copy
+   `league-settings.json`, the pool snapshot, and
+   `tokens/openrouter.json` into it). `--state-dir` that resolves to
+   the live `$CI_STATE_DIR` / `/srv/ci` is rejected (D-92).
 3. Open `http://127.0.0.1:8765/`. Enter our draft slot (1-based).
    Team count is not typed here — edit the settings file if the
    room grew; the page re-reads it.
@@ -189,10 +193,13 @@ clicks in the Yahoo room and records each pick on a local page.
    Undo reverses the last row.
 
 The page is an unstyled form: next pick, on-the-clock slot, our next
-pick, the turn, our roster, and a truncated available list. Glanceable
-tiers are issue 10. Binds localhost only. Delete
-`draft-board.json` to start a session over. Changing `team_count` or
-`draft.rounds` after picks exist fails loud.
+pick, the turn, a ranked council slate of 5+ (tier fallback until
+the background run finishes), our roster, and a truncated available
+list. Glanceable tiers are issue 10. Every recorded pick (and
+advance/undo) recomputes in the background; POST does not wait on
+models. Binds localhost only. Delete `draft-board.json` to start a
+session over. Changing `team_count` or `draft.rounds` after picks
+exist fails loud.
 
 ### Decision ledger (kb.db)
 
