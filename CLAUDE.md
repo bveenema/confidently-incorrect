@@ -76,8 +76,9 @@ Quality gates for `/ship`: `make lint` and `make test` must pass.
 - **Timezone is `America/New_York`** everywhere.
 - **Deploys are manual** via `deploy.sh`. `/ship` merges to main; it
   does not deploy. Do not wire deployment into the ship phase.
-- **After week 1 begins**, no deploys Thu 17:00 – Mon 23:59 ET, and
-  persona prompts are frozen for the season. See `.ai/rules.md` §3.
+- **After a functioning full-week lineup pass is in production**, no
+  deploys Thu 17:00 – Mon 23:59 ET. Persona prompts are frozen for the
+  season. See `.ai/rules.md` §3.
 - **GitHub writing is two sections** (`## What this means` then
   `## Details`) on every PR, issue, comment, and issue/PR reply.
   See `.ai/rules.md` §9.

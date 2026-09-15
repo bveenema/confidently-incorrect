@@ -54,10 +54,15 @@ Once week 1 begins, code changes are confounds for the attribution data
   unparseable output), record it as a deploy touching decision logic
   and note it in the log site, because every persona statistic before
   and after that point is measuring a different thing.
-- **No deploys during game windows.** Thursday 17:00 ET through Monday
-  23:59 ET is frozen except for a P1 fix. The cost of a bad deploy in
-  that window is a missed lock.
-- Tuesday and Wednesday are the change window.
+- **No deploys during game windows, once a functioning full-week
+  lineup pass is in production.** Thursday 17:00 ET through Monday
+  23:59 ET is then frozen except for a P1 fix. The cost of a bad
+  deploy in that window is a missed lock. Until that path is live, a
+  partial ship — including a Thursday-only lineup pass — may be
+  deployed in a game window so it can actually run. Calendar week 1
+  alone does not start the freeze.
+- Tuesday and Wednesday are the change window after the freeze
+  applies.
 
 ### 3.1 Deploy discipline
 

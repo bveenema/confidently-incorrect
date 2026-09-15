@@ -1151,8 +1151,10 @@ the work; the agent runs the script rather than improvising commands.
 
 Deploy script, in order:
 
-1. Refuse if inside the freeze window (Thu 17:00 – Mon 23:59 ET) unless
-   `--emergency` is passed explicitly
+1. Refuse if the full-week lineup freeze is in force (D-113) and the
+   clock is inside Thu 17:00 – Mon 23:59 ET, unless `--emergency` is
+   passed explicitly. Until a functioning full-week lineup pass is in
+   production, the script does not treat a game window as frozen.
 2. `git pull` on main
 3. Build tagged: `podman build -t ci:$(git rev-parse --short HEAD)`
 4. Run any schema migration
@@ -1330,3 +1332,4 @@ Decisions made so far, with the reasoning, so future-me knows why.
 | D-110 | Gemini OpenRouter calls do not send `reasoning.enabled=false`. `google/gemini-2.5-pro` rejects that with HTTP 400 ("Reasoning is mandatory") and the draft run fails `gm_missing` even though the specialists already returned. Claude still gets reasoning off. Compact packet JSON from D-109 stands. | First our-clock after D-109, 6 Sep 2026 rehearsal. Supersedes the Gemini half of D-109's reasoning-off reading. |
 | D-111 | The last successful council panel (GM rationale + specialist briefs) stays on the localhost page through other-clock picks and through a new our-clock run until that run completes. Fallback reseeds and `gm_missing` / model failure do not clear a readable panel. `council_running` is the in-flight worker flag, not "the slate source is fallback". | 6 Sep 2026 rehearsal: the 60s clock expired before the panel could be read because every persist replaced the council slate with tier fallback. |
 | D-112 | Draft council wall-clock is capped at ~40s. Every `schedule()` reseeds the need-aware tier list immediately (our-clock included) and copies a held panel onto the new `packet_hash` so the page keeps names plus the last write-up while `council_running`. A 38s worker deadline increments generation and clears `in_flight` so a late result cannot paint after the user already picked. Draft OpenRouter calls use a 15s HTTP timeout. Draft Maddox is `google/gemini-2.5-flash` (`models.maddox_draft`; season Maddox stays `gemini-2.5-pro`). D-110 stands: Gemini still does not send `reasoning.enabled=false`. | 6 Sep 2026 mock after D-111: our-clock waits were 50s / 70s / 55s / abandoned at 180s. Bottleneck was max(specialists)+Maddox on `gemini-2.5-pro` against a 60s HTTP timeout; D-111 also hid the tier list for the duration of a new run. |
+| D-113 | Game-window deploy freeze (Thu 17:00 – Mon 23:59 ET) starts when a functioning full-week lineup pass is in production, not when calendar week 1 begins. A partial path (Thursday-only included) may be deployed inside a game window until that gate. D-73 still means the script enforces the window once the freeze is on. Persona-prompt freeze and post-week-1 `deploys` rows are unchanged. | Week 1 locks were already missed and the season engine is not live; a calendar freeze would block the first real lineup ship. |

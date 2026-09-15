@@ -78,7 +78,7 @@ directory.
 - Never touch the operator's real `$CI_STATE_DIR` / `/srv/ci/` unless
   the user names the file and asks (D-90). Tests use a temp dir.
 - Timezone is `America/New_York`.
-- After week 1: no deploys Thu 17:00–Mon 23:59 ET; persona prompts frozen.
+- After a full-week lineup pass is in production: no deploys Thu 17:00–Mon 23:59 ET. Persona prompts frozen for the season.
 - Cursor has no worktree isolation — serialize file-modifying coder tasks.
 
 ## AI Context
